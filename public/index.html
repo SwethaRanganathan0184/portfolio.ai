@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Portfol.io — AI Portfolio Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #080810;
+        --surface: #0f0f1a;
+        --surface2: #16162a;
+        --border: #1e1e35;
+        --border2: #2a2a45;
+        --text: #e8e8f0;
+        --textLight: #6b6b8a;
+        --textMid: #9999b8;
+        --primary: #7c6aff;
+        --primaryHov: #9080ff;
+        --accent: #00e5cc;
+        --accentDim: rgba(0, 229, 204, 0.08);
+        --glow: rgba(124, 106, 255, 0.15);
+        --font: "Syne", sans-serif;
+        --mono: "DM Mono", monospace;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* ── Grain overlay ── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0.4;
+      }
+
+      /* ── Nav ── */
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        padding: 1.25rem 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: blur(20px);
+        background: rgba(8, 8, 16, 0.8);
+      }
+
+      .nav-logo {
+        font-size: 1.1rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--text);
+      }
+
+      .nav-logo span {
+        color: var(--primary);
+      }
+
+      .nav-badge {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        padding: 0.2rem 0.6rem;
+        background: var(--accentDim);
+        color: var(--accent);
+        border: 1px solid rgba(0, 229, 204, 0.2);
+        border-radius: 100px;
+        letter-spacing: 0.05em;
+      }
+
+      /* ── Hero ── */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8rem 2rem 5rem;
+        position: relative;
+        text-align: center;
+      }
+
+      /* Radial glow behind hero */
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 600px;
+        height: 400px;
+        background: radial-gradient(
+          ellipse,
+          rgba(124, 106, 255, 0.12),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+
+      /* Dotted grid */
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(
+          circle,
+          var(--border2) 1px,
+          transparent 1px
+        );
+        background-size: 32px 32px;
+        mask-image: radial-gradient(
+          ellipse 80% 80% at 50% 50%,
+          black 30%,
+          transparent 100%
+        );
+        pointer-events: none;
+        opacity: 0.4;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 760px;
+      }
+
+      .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--accent);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 1.75rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease 0.1s forwards;
+      }
+
+      .hero-eyebrow::before {
+        content: "";
+        width: 20px;
+        height: 1px;
+        background: var(--accent);
+      }
+
+      .hero-title {
+        font-size: clamp(3.2rem, 9vw, 6rem);
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        margin-bottom: 1.5rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease 0.25s forwards;
+      }
+
+      .hero-title .word-portfolio {
+        color: var(--text);
+      }
+      .hero-title .word-dot {
+        color: var(--primary);
+      }
+      .hero-title .word-io {
+        color: var(--textMid);
+      }
+
+      .hero-title .line2 {
+        display: block;
+        font-size: 0.45em;
+        font-weight: 400;
+        color: var(--textLight);
+        letter-spacing: -0.01em;
+        margin-top: 0.5rem;
+        font-family: var(--mono);
+      }
+
+      .hero-sub {
+        font-size: 1.05rem;
+        color: var(--textMid);
+        line-height: 1.7;
+        max-width: 500px;
+        margin: 0 auto 3rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease 0.4s forwards;
+      }
+
+      /* ── Upload Card ── */
+      .upload-wrapper {
+        width: 100%;
+        max-width: 560px;
+        margin: 0 auto;
+        opacity: 0;
+        animation: fadeUp 0.6s ease 0.55s forwards;
+      }
+
+      .upload-card {
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 16px;
+        padding: 2.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.2s;
+      }
+
+      .upload-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--primary),
+          transparent
+        );
+        opacity: 0.5;
+      }
+
+      .drop-zone {
+        border: 1.5px dashed var(--border2);
+        border-radius: 10px;
+        padding: 2.5rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        background: var(--bg);
+      }
+
+      .drop-zone:hover,
+      .drop-zone.dragover {
+        border-color: var(--primary);
+        background: var(--glow);
+      }
+
+      .drop-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+      }
+
+      .drop-icon {
+        width: 44px;
+        height: 44px;
+        margin: 0 auto 1rem;
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+      }
+
+      .drop-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 0.35rem;
+      }
+
+      .drop-sub {
+        font-size: 0.78rem;
+        color: var(--textLight);
+        font-family: var(--mono);
+      }
+
+      .file-selected {
+        display: none;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem;
+        background: var(--accentDim);
+        border: 1px solid rgba(0, 229, 204, 0.2);
+        border-radius: 8px;
+        margin-top: 1rem;
+      }
+
+      .file-selected.visible {
+        display: flex;
+      }
+
+      .file-name {
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--accent);
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .file-remove {
+        background: none;
+        border: none;
+        color: var(--textLight);
+        cursor: pointer;
+        padding: 0.2rem;
+        display: flex;
+        transition: color 0.2s;
+      }
+
+      .file-remove:hover {
+        color: var(--text);
+      }
+
+      .generate-btn {
+        width: 100%;
+        margin-top: 1.25rem;
+        padding: 0.95rem;
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-family: var(--font);
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        letter-spacing: -0.01em;
+      }
+
+      .generate-btn:hover:not(:disabled) {
+        background: var(--primaryHov);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px rgba(124, 106, 255, 0.3);
+      }
+
+      .generate-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* ── Progress ── */
+      .progress-wrap {
+        display: none;
+        margin-top: 1.25rem;
+      }
+
+      .progress-wrap.visible {
+        display: block;
+      }
+
+      .progress-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+
+      .progress-step {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.82rem;
+        color: var(--textLight);
+        font-family: var(--mono);
+        transition: color 0.3s;
+      }
+
+      .progress-step.active {
+        color: var(--text);
+      }
+      .progress-step.done {
+        color: var(--accent);
+      }
+
+      .step-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--border2);
+        flex-shrink: 0;
+        transition: background 0.3s;
+      }
+
+      .progress-step.active .step-dot {
+        background: var(--primary);
+      }
+      .progress-step.done .step-dot {
+        background: var(--accent);
+      }
+
+      .step-spinner {
+        display: none;
+        width: 12px;
+        height: 12px;
+        border: 1.5px solid var(--border2);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        flex-shrink: 0;
+      }
+
+      .progress-step.active .step-dot {
+        display: none;
+      }
+      .progress-step.active .step-spinner {
+        display: block;
+      }
+
+      /* ── Error ── */
+      .error-box {
+        display: none;
+        margin-top: 1rem;
+        padding: 0.85rem 1rem;
+        background: rgba(255, 80, 80, 0.08);
+        border: 1px solid rgba(255, 80, 80, 0.2);
+        border-radius: 8px;
+        font-size: 0.82rem;
+        color: #ff7070;
+        font-family: var(--mono);
+      }
+
+      .error-box.visible {
+        display: block;
+      }
+
+      /* ── How it works ── */
+      .how-section {
+        padding: 6rem 2rem;
+        max-width: 900px;
+        margin: 0 auto;
+        border-top: 1px solid var(--border);
+      }
+
+      .section-label {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--accent);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 3rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .section-label::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+      }
+
+      .step-card {
+        padding: 1.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        transition: border-color 0.2s;
+      }
+
+      .step-card:hover {
+        border-color: var(--border2);
+      }
+
+      .step-number {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+        letter-spacing: 0.05em;
+      }
+
+      .step-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .step-desc {
+        font-size: 0.82rem;
+        color: var(--textLight);
+        line-height: 1.65;
+      }
+
+      /* ── Preview Modal ── */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(8, 8, 16, 0.92);
+        z-index: 200;
+        backdrop-filter: blur(8px);
+        padding: 1.5rem;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .modal-overlay.visible {
+        display: flex;
+      }
+
+      .modal-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+
+      .modal-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--textMid);
+      }
+
+      .modal-title span {
+        color: var(--text);
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 0.75rem;
+      }
+      .btn-deploy {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background: #238636;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-deploy:hover {
+  background: #2ea043;
+  box-shadow: 0 4px 16px rgba(35, 134, 54, 0.35);
+}
+
+/* Success banner */
+.success-banner {
+  display: none;
+  position: fixed;
+  top: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  padding: 1rem 1.75rem;
+  background: #0d1117;
+  border: 1px solid #238636;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  min-width: 320px;
+}
+
+.success-banner.visible { display: block; }
+.success-banner a { color: #58a6ff; text-decoration: underline; }
+.success-banner .success-title { color: #3fb950; font-weight: 700; margin-bottom: 0.35rem; }
+
+      .btn-download {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.25rem;
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-family: var(--font);
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-download:hover {
+        background: var(--primaryHov);
+        box-shadow: 0 4px 16px rgba(124, 106, 255, 0.3);
+      }
+
+      .btn-close {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.25rem;
+        background: var(--surface);
+        color: var(--textMid);
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        font-family: var(--font);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-close:hover {
+        color: var(--text);
+        border-color: var(--textLight);
+      }
+
+      .modal-frame-wrap {
+        flex: 1;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--border2);
+        background: #fff;
+      }
+
+      .modal-frame-wrap iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+      }
+
+      .deploy-hint {
+        flex-shrink: 0;
+        padding: 1rem 1.25rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--textLight);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .deploy-hint strong {
+        color: var(--accent);
+      }
+
+      /* ── Footer ── */
+      footer {
+        padding: 2rem 2.5rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--textLight);
+        font-family: var(--mono);
+      }
+
+      /* ── Animations ── */
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 640px) {
+        .steps-grid {
+          grid-template-columns: 1fr;
+        }
+        .hero-title {
+          font-size: 2.8rem;
+        }
+        nav {
+          padding: 1rem 1.25rem;
+        }
+        .modal-overlay {
+          padding: 1rem;
+        }
+      }
+
+      ::-webkit-scrollbar {
+        width: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Nav -->
+    <nav>
+      <div class="nav-logo">Portfol<span>.</span>io</div>
+      <div class="nav-badge">AI-powered ✦ Free</div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-eyebrow">Drop your resume. Get a portfolio.</div>
+        <h1 class="hero-title">
+          <span class="word-portfolio">Portfol</span
+          ><span class="word-dot">.</span><span class="word-io">io</span>
+          <span class="line2">// resume → portfolio in 30 seconds</span>
+        </h1>
+        <p class="hero-sub">
+          Upload your resume and AI generates a beautiful, deployable portfolio
+          website — instantly. No accounts, no templates, no design skills
+          needed.
+        </p>
+
+        <!-- Upload Card -->
+        <div class="upload-wrapper">
+          <div class="upload-card">
+            <div class="drop-zone" id="dropZone">
+              <input type="file" id="fileInput" accept=".pdf,.docx" />
+              <div class="drop-icon">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <div class="drop-title">Drop your resume here</div>
+              <div class="drop-sub">PDF or DOCX · Max 10MB</div>
+            </div>
+
+            <div class="file-selected" id="fileSelected">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                style="color: var(--accent); flex-shrink: 0"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span class="file-name" id="fileName"></span>
+              <button
+                class="file-remove"
+                id="fileRemove"
+                aria-label="Remove file"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="progress-wrap" id="progressWrap">
+              <div class="progress-steps">
+                <div class="progress-step" id="step1">
+                  <div class="step-dot"></div>
+                  <div class="step-spinner"></div>
+                  <span>Reading resume</span>
+                </div>
+                <div class="progress-step" id="step2">
+                  <div class="step-dot"></div>
+                  <div class="step-spinner"></div>
+                  <span>Generating portfolio content</span>
+                </div>
+                <div class="progress-step" id="step3">
+                  <div class="step-dot"></div>
+                  <div class="step-spinner"></div>
+                  <span>Designing your theme</span>
+                </div>
+                <div class="progress-step" id="step4">
+                  <div class="step-dot"></div>
+                  <div class="step-spinner"></div>
+                  <span>Building site</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="error-box" id="errorBox"></div>
+
+            <button class="generate-btn" id="generateBtn" disabled>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+              Generate Portfolio
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="how-section">
+      <div class="section-label">How it works</div>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">01 /</div>
+          <div class="step-title">Upload your resume</div>
+          <div class="step-desc">
+            Drop in your PDF or DOCX resume. No account needed, no data stored.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-number">02 /</div>
+          <div class="step-title">AI does the work</div>
+          <div class="step-desc">
+            Gemini reads your resume and rewrites it into compelling portfolio
+            copy with a custom color theme.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-number">03 /</div>
+          <div class="step-title">Deploy in one click</div>
+          <div class="step-desc">
+            Download your portfolio as a single HTML file and host it free on
+            GitHub Pages.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <span>Portfol.io — built with Gemini AI</span>
+      <span>Free forever ✦ Open source</span>
+    </footer>
+
+    <!-- Preview Modal -->
+    <div class="modal-overlay" id="modal">
+      <div class="modal-topbar">
+        <div class="modal-title">
+          Portfolio for <span id="modalName">—</span>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-deploy" id="deployBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/>
+                <path d="M9 18c-4.51 2-5-2-7-2"/>
+            </svg>
+            Deploy to GitHub Pages
+          </button>
+          <button class="btn-download" id="downloadBtn">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download HTML
+          </button>
+          <button class="btn-close" id="closeModal">✕ Close</button>
+        </div>
+      </div>
+      <div class="modal-frame-wrap">
+        <iframe id="previewFrame" title="Portfolio Preview"></iframe>
+      </div>
+      <div class="deploy-hint">
+        <strong>Deploy free →</strong>
+        <span
+          >Create a repo named <strong>username.github.io</strong> on GitHub,
+          push the HTML file, enable GitHub Pages — live in 60 seconds.</span
+        >
+      </div>
+    </div>
+
+    <script>
+      const fileInput = document.getElementById("fileInput");
+      const dropZone = document.getElementById("dropZone");
+      const fileSelected = document.getElementById("fileSelected");
+      const fileName = document.getElementById("fileName");
+      const fileRemove = document.getElementById("fileRemove");
+      const generateBtn = document.getElementById("generateBtn");
+      const progressWrap = document.getElementById("progressWrap");
+      const errorBox = document.getElementById("errorBox");
+      const modal = document.getElementById("modal");
+      const previewFrame = document.getElementById("previewFrame");
+      const modalName = document.getElementById("modalName");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const closeModal = document.getElementById("closeModal");
+
+      let selectedFile = null;
+      let generatedHTML = "";
+
+      // ── File selection ──
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files[0]) selectFile(e.target.files[0]);
+      });
+
+      function selectFile(file) {
+        selectedFile = file;
+        fileName.textContent = file.name;
+        fileSelected.classList.add("visible");
+        generateBtn.disabled = false;
+        errorBox.classList.remove("visible");
+      }
+
+      fileRemove.addEventListener("click", () => {
+        selectedFile = null;
+        fileInput.value = "";
+        fileSelected.classList.remove("visible");
+        generateBtn.disabled = true;
+      });
+
+      // ── Drag and drop ──
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+
+      dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("dragover"),
+      );
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        const file = e.dataTransfer.files[0];
+        if (file) selectFile(file);
+      });
+
+      // ── Progress steps ──
+      const steps = ["step1", "step2", "step3", "step4"];
+
+      function setStep(index) {
+        steps.forEach((id, i) => {
+          const el = document.getElementById(id);
+          el.classList.remove("active", "done");
+          if (i < index) el.classList.add("done");
+          else if (i === index) el.classList.add("active");
+        });
+      }
+
+      // ── Generate ──
+      generateBtn.addEventListener("click", async () => {
+        if (!selectedFile) return;
+
+        generateBtn.disabled = true;
+        progressWrap.classList.add("visible");
+        errorBox.classList.remove("visible");
+        generatedHTML = "";
+
+        const formData = new FormData();
+        formData.append("resume", selectedFile);
+
+        try {
+          setStep(0);
+          await delay(600);
+          setStep(1);
+
+          const res = await fetch("/generate", {
+            method: "POST",
+            body: formData,
+          });
+
+          setStep(2);
+          await delay(400);
+          setStep(3);
+          await delay(300);
+
+          const data = await res.json();
+
+          if (!res.ok) throw new Error(data.error || "Generation failed");
+
+          // Mark all done
+          steps.forEach((id) => {
+            const el = document.getElementById(id);
+            el.classList.remove("active");
+            el.classList.add("done");
+          });
+
+          generatedHTML = data.html;
+
+          await delay(500);
+          showPreview(data.name, data.html, data.sessionId);
+        } catch (err) {
+          errorBox.textContent =
+            "✗ " + (err.message || "Something went wrong. Please try again.");
+          errorBox.classList.add("visible");
+          generateBtn.disabled = false;
+          progressWrap.classList.remove("visible");
+          steps.forEach((id) =>
+            document.getElementById(id).classList.remove("active", "done"),
+          );
+        }
+      });
+
+      function delay(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+
+      // ── Preview ──
+      function showPreview(name, html) {
+        modalName.textContent = name;
+        previewFrame.srcdoc = html;
+        modal.classList.add("visible");
+      }
+
+      // ── Download ──
+      downloadBtn.addEventListener("click", () => {
+        if (!generatedHTML) return;
+        const blob = new Blob([generatedHTML], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "portfolio.html";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // ── Close modal ──
+      closeModal.addEventListener("click", () => {
+        modal.classList.remove("visible");
+        progressWrap.classList.remove("visible");
+        generateBtn.disabled = false;
+        steps.forEach((id) =>
+          document.getElementById(id).classList.remove("active", "done"),
+        );
+      });
+
+      // ── Deploy button ──
+let currentSessionId = null;
+
+// Store sessionId when generation completes
+const originalFetch = window.fetch;
+document.getElementById('generateBtn').addEventListener('click', () => {}, true);
+
+// Override to capture sessionId — easier: just update showPreview
+function showPreview(name, html, sessionId) {
+  currentSessionId = sessionId;
+  modalName.textContent = name;
+  previewFrame.srcdoc = html;
+  modal.classList.add('visible');
+}
+
+document.getElementById('deployBtn').addEventListener('click', () => {
+  if (!currentSessionId) return;
+  window.location.href = `/auth/github?sessionId=${currentSessionId}`;
+});
+
+// ── Handle redirect back from GitHub OAuth ──
+const params = new URLSearchParams(window.location.search);
+if (params.get('deployed') === 'true') {
+  const url = params.get('url');
+  const name = params.get('name');
+  const banner = document.getElementById('successBanner');
+  const link = document.getElementById('liveLink');
+  link.href = url;
+  link.textContent = url;
+  banner.classList.add('visible');
+  setTimeout(() => banner.classList.remove('visible'), 10000);
+  // Clean URL
+  window.history.replaceState({}, '', '/');
+}
+
+if (params.get('error')) {
+  const msg = params.get('error');
+  alert('Deploy failed: ' + msg);
+  window.history.replaceState({}, '', '/');
+}
+    </script>
+    <div class="success-banner" id="successBanner">
+  <div class="success-title">🎉 Portfolio deployed!</div>
+  <div>Your site will be live at <a id="liveLink" href="#" target="_blank"></a> in ~60 seconds.</div>
+</div>
+  </body>
+</html>
