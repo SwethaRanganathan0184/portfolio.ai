@@ -4,14 +4,23 @@ require("dotenv").config({ path: require("path").join(__dirname, "../.env") });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function generatePortfolioData(resumeText) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  const model = genAI.getGenerativeModel({ 
+    model: modelName,
+    generationConfig: { responseMimeType: "application/json" }
+  });
 
   const prompt = `
-    You are an expert portfolio copywriter. Given the following resume text, 
+    You are an expert portfolio copywriter and technical recruiter. Given the following resume text, 
     generate compelling portfolio website content.
     
-    IMPORTANT: Return ONLY a valid JSON object. No markdown, no backticks, 
-    no explanation. Just the raw JSON.
+    CRITICAL ATS-FRIENDLY & COPYWRITING INSTRUCTIONS:
+    - Optimize the phrasing using professional, industry-standard, and ATS-friendly action verbs (e.g., "orchestrated", "engineered", "streamlined", "spearheaded").
+    - DO NOT alter the core context, level of merit, years of experience, or degree of expertise. Do not inflate roles (e.g., do not turn a "Junior Engineer" into a "Lead Architect" or claim unearned certifications).
+    - Maintain factual truth. Keep the levels of responsibility, impact, and technical depth identical to the resume.
+    - Rewrite achievements to be impact-oriented (Focus on action + metric/result where available in the resume).
+    
+    IMPORTANT: Return ONLY a valid JSON object matching the schema below. No markdown, no backticks, no explanatory text.
 
     Resume:
     ${resumeText}
@@ -20,7 +29,7 @@ async function generatePortfolioData(resumeText) {
     {
       "name": "full name",
       "tagline": "one punchy headline describing who they are professionally",
-      "about": "3 sentences in first person. Make it engaging and human, not corporate.",
+      "about": "3 sentences in first person. Make it engaging, human, and clear. Avoid generic corporate buzzwords.",
       "email": "email address if found anywhere in resume, otherwise null",
       "linkedin": "full linkedin.com URL if found, otherwise null. Common formats: linkedin.com/in/username",
       "github": "full github.com URL if found, otherwise null. Common formats: github.com/username",
@@ -31,13 +40,13 @@ async function generatePortfolioData(resumeText) {
           "company": "company name",
           "role": "job title",
           "period": "start date - end date",
-          "highlight": "single most impressive achievement in one sentence"
+          "highlight": "single most impressive achievement in one sentence using strong action verbs"
         }
       ],
       "projects": [
         {
           "title": "project name",
-          "description": "2 sentences. Focus on what it does and why it matters.",
+          "description": "2 sentences. Focus on what it does and the business/technical impact.",
           "tags": ["tech1", "tech2"],
           "url": "project url if mentioned, otherwise null"
         }
@@ -58,7 +67,11 @@ async function generatePortfolioData(resumeText) {
 }
 
 async function generateTheme(portfolioData) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  const model = genAI.getGenerativeModel({ 
+    model: modelName,
+    generationConfig: { responseMimeType: "application/json" }
+  });
 
   const prompt = `
     You are a UI designer. Based on this person's professional profile, 
@@ -137,4 +150,32 @@ async function generateTheme(portfolioData) {
   }
 }
 
-module.exports = { generatePortfolioData, generateTheme };
+async function generateCoverLetter(resumeText, jobDescription) {
+  const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  const model = genAI.getGenerativeModel({ model: modelName });
+
+  const prompt = `
+    You are an expert executive coach and professional copywriter. 
+    Write a highly tailored, professional, and compelling cover letter for a candidate applying to a position.
+    
+    Use the candidate's Resume Text and the target Job Description below:
+    
+    RESUME TEXT:
+    ${resumeText}
+    
+    JOB DESCRIPTION:
+    ${jobDescription}
+    
+    CRITICAL INSTRUCTIONS:
+    1. Tailor the cover letter to highlight matching skills, experiences, and accomplishments from the Resume that directly address the requirements in the Job Description.
+    2. DO NOT fabricate any facts, qualifications, years of experience, projects, or credentials. Everything mentioned must be strictly grounded in the candidate's Resume Text.
+    3. Use a professional, confident, and engaging tone. Avoid generic buzzwords.
+    4. Keep it concise: 3 to 4 paragraphs (plus formal header/salutation and sign-off).
+    5. Return ONLY the plain text / markdown of the final cover letter. No explanations, no introductory remarks, no backticks.
+  `;
+
+  const result = await model.generateContent(prompt);
+  return result.response.text().trim();
+}
+
+module.exports = { generatePortfolioData, generateTheme, generateCoverLetter };

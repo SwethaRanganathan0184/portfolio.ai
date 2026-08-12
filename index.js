@@ -14,7 +14,7 @@ const { generateHTML } = require("./src/generator");
 const getChalk = async () => (await import("chalk")).default;
 const getOra = async () => (await import("ora")).default;
 
-async function run(resumePath) {
+async function run(resumePath, cmdOptions) {
   const chalk = await getChalk();
   const { default: ora } = await import("ora");
 
@@ -68,10 +68,27 @@ async function run(resumePath) {
     process.exit(1);
   }
 
+  // Parse colors from CLI argument (e.g. "#7c6aff,#4f46e5,#00e5cc,#080810")
+  let colors = {};
+  if (cmdOptions.colors) {
+    const parts = cmdOptions.colors.split(",").map(c => c.trim());
+    if (parts[0]) colors.primary = parts[0];
+    if (parts[1]) colors.secondary = parts[1];
+    if (parts[2]) colors.accent = parts[2];
+    if (parts[3]) colors.background = parts[3];
+  }
+
+  const htmlOptions = {
+    style: cmdOptions.style || "minimalism",
+    title: cmdOptions.title || "",
+    favicon: cmdOptions.favicon || "",
+    colors
+  };
+
   // ── 5. Build HTML ──
   const buildSpinner = ora("  Building site...").start();
   try {
-    const html = generateHTML(portfolioData, theme);
+    const html = generateHTML(portfolioData, theme, htmlOptions);
     fs.mkdirSync("./dist", { recursive: true });
     fs.writeFileSync("./dist/index.html", html);
     buildSpinner.succeed(chalk.green("  Site built"));
@@ -102,6 +119,10 @@ program
   .name("portfolio-gen")
   .description("Generate a portfolio website from your resume using AI")
   .argument("<resume>", "Path to your resume file (PDF or DOCX)")
+  .option("-s, --style <style>", "UI Style (minimalism, glassmorphism, brutalism, playful)", "minimalism")
+  .option("-t, --title <title>", "Custom webpage title")
+  .option("-f, --favicon <favicon>", "Custom favicon (Emoji or URL)")
+  .option("-c, --colors <colors>", "Comma-separated custom colors (primary,secondary,accent,background)")
   .action(run);
 
 program.parse();

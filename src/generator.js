@@ -1,6 +1,21 @@
-function generateHTML(data, theme) {
+function generateHTML(data, theme, options = {}) {
+  const escapeHTML = (str) => {
+    if (typeof str !== 'string') return str || '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  const name = escapeHTML(data.name);
+  const tagline = escapeHTML(data.tagline);
+  const about = escapeHTML(data.about);
+  const cta = escapeHTML(data.cta);
+
   const skillsHTML = data.skills
-    .map(skill => `<span class="skill-tag">${skill}</span>`)
+    .map(skill => `<span class="skill-tag">${escapeHTML(skill)}</span>`)
     .join("");
 
   const experienceHTML = data.experience
@@ -8,14 +23,14 @@ function generateHTML(data, theme) {
       (exp, i) => `
       <div class="exp-item" style="animation-delay: ${i * 0.1}s">
         <div class="exp-left">
-          <span class="exp-period">${exp.period}</span>
+          <span class="exp-period">${escapeHTML(exp.period)}</span>
         </div>
         <div class="exp-right">
           <div class="exp-header">
-            <h3 class="exp-role">${exp.role}</h3>
-            <span class="exp-company">@ ${exp.company}</span>
+            <h3 class="exp-role">${escapeHTML(exp.role)}</h3>
+            <span class="exp-company">@ ${escapeHTML(exp.company)}</span>
           </div>
-          <p class="exp-highlight">${exp.highlight}</p>
+          <p class="exp-highlight">${escapeHTML(exp.highlight)}</p>
         </div>
       </div>`
     )
@@ -27,14 +42,14 @@ function generateHTML(data, theme) {
       <div class="project-card" style="animation-delay: ${i * 0.15}s">
         <div class="project-inner">
           <div class="project-header">
-            <h3 class="project-title">${proj.title}</h3>
-            ${proj.url ? `<a href="${proj.url}" target="_blank" class="project-link" aria-label="View project">
+            <h3 class="project-title">${escapeHTML(proj.title)}</h3>
+            ${proj.url ? `<a href="${escapeHTML(proj.url)}" target="_blank" class="project-link" aria-label="View project">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
             </a>` : ""}
           </div>
-          <p class="project-desc">${proj.description}</p>
+          <p class="project-desc">${escapeHTML(proj.description)}</p>
           <div class="project-tags">
-            ${proj.tags.map(tag => `<span class="project-tag">${tag}</span>`).join("")}
+            ${proj.tags.map(tag => `<span class="project-tag">${escapeHTML(tag)}</span>`).join("")}
           </div>
         </div>
       </div>`
@@ -42,30 +57,149 @@ function generateHTML(data, theme) {
     .join("");
 
   const contactLinks = [
-    data.email ? `<a href="mailto:${data.email}" class="contact-link">
+    data.email ? `<a href="mailto:${escapeHTML(data.email)}" class="contact-link">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-      <span>${data.email}</span>
+      <span>${escapeHTML(data.email)}</span>
     </a>` : "",
-    data.github ? `<a href="${data.github}" target="_blank" class="contact-link">
+    data.github ? `<a href="${escapeHTML(data.github)}" target="_blank" class="contact-link">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-      <span>${data.github}</span>
+      <span>${escapeHTML(data.github)}</span>
     </a>` : "",
-    data.linkedin ? `<a href="${data.linkedin}" target="_blank" class="contact-link">
+    data.linkedin ? `<a href="${escapeHTML(data.linkedin)}" target="_blank" class="contact-link">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
       <span>LinkedIn</span>
     </a>` : "",
   ]
-    
     .filter(Boolean)
     .join("");
+
+  // ── Options: Webpage Title ──
+  const pageTitle = options.title || name;
+
+  // ── Options: Favicon ──
+  const getFaviconHref = (favicon) => {
+    if (!favicon) return "";
+    const isEmoji = /\p{Emoji}/u.test(favicon) && favicon.length <= 8;
+    if (isEmoji) {
+      return `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>${favicon}</text></svg>`;
+    }
+    return favicon;
+  };
+  const faviconTag = options.favicon 
+    ? `<link rel="icon" href="${getFaviconHref(options.favicon)}" />`
+    : `<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✦</text></svg>" />`;
+
+  // ── Options: Color Palette overrides (up to 4 colors) ──
+  const customColors = options.colors || {};
+  const isDarkColor = (hex) => {
+    if (!hex || hex[0] !== '#') return false;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness < 128;
+  };
+
+  let lightPrimary = customColors.primary || theme.light.primary;
+  let lightSecondary = customColors.secondary || theme.light.secondary;
+  let lightAccent = customColors.accent || theme.light.accent;
+  let lightBg = theme.light.background;
+
+  let darkPrimary = customColors.primary || theme.dark.primary;
+  let darkSecondary = customColors.secondary || theme.dark.secondary;
+  let darkAccent = customColors.accent || theme.dark.accent;
+  let darkBg = theme.dark.background;
+
+  if (customColors.background) {
+    const isDark = isDarkColor(customColors.background);
+    if (isDark) {
+      darkBg = customColors.background;
+    } else {
+      lightBg = customColors.background;
+    }
+  }
+
+  // ── Options: UI Style Overrides ──
+  let styleCSS = "";
+  if (options.style === "minimalism") {
+    styleCSS = `
+      /* Minimalism Overrides */
+      body {
+        --shadow: none !important;
+      }
+      .project-card, .skill-tag, .theme-toggle, .hero-cta, nav {
+        border-radius: 2px !important;
+        box-shadow: none !important;
+      }
+      .project-card:hover {
+        transform: translateY(-2px) !important;
+        border-color: var(--primary) !important;
+      }
+    `;
+  } else if (options.style === "glassmorphism") {
+    styleCSS = `
+      /* Glassmorphism Overrides */
+      .project-card, nav {
+        background: color-mix(in srgb, var(--surface) 40%, transparent) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid color-mix(in srgb, var(--border) 50%, transparent) !important;
+      }
+      .project-card:hover {
+        box-shadow: 0 8px 32px var(--shadow) !important;
+        background: color-mix(in srgb, var(--surfaceHov) 60%, transparent) !important;
+      }
+    `;
+  } else if (options.style === "brutalism") {
+    styleCSS = `
+      /* Brutalism Overrides */
+      :root {
+        --brutal-shadow-color: #000000;
+      }
+      [data-theme="dark"] {
+        --brutal-shadow-color: var(--primary);
+      }
+      .project-card, .skill-tag, .theme-toggle, .hero-cta, nav {
+        border-radius: 0px !important;
+        border: 3px solid var(--text) !important;
+        box-shadow: 5px 5px 0px var(--brutal-shadow-color) !important;
+        background: var(--surface) !important;
+      }
+      .project-card:hover {
+        transform: translate(-2px, -2px) !important;
+        box-shadow: 7px 7px 0px var(--brutal-shadow-color) !important;
+      }
+      .hero-cta:hover, .theme-toggle:hover {
+        transform: translate(-1px, -1px) !important;
+        box-shadow: 3px 3px 0px var(--brutal-shadow-color) !important;
+      }
+    `;
+  } else if (options.style === "playful") {
+    styleCSS = `
+      /* Playful Overrides */
+      .project-card, .hero-cta {
+        border-radius: 20px !important;
+      }
+      .skill-tag, .theme-toggle {
+        border-radius: 100px !important;
+      }
+      .project-card:hover {
+        transform: translateY(-4px) rotate(1deg) !important;
+      }
+      .hero-cta:hover {
+        transform: scale(1.05) !important;
+      }
+    `;
+  }
 
   return `<!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="${data.tagline}" />
-  <title>${data.name}</title>
+  <meta name="description" content="${tagline}" />
+  <title>${pageTitle}</title>
+  ${faviconTag}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(theme.font)}:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -75,28 +209,28 @@ function generateHTML(data, theme) {
       --font: '${theme.font}', sans-serif;
 
       /* Light mode */
-      --light-primary:     ${theme.light.primary};
-      --light-secondary:   ${theme.light.secondary};
-      --light-bg:          ${theme.light.background};
-      --light-surface:     ${theme.light.surface};
-      --light-surfaceHov:  ${theme.light.surfaceHover};
-      --light-text:        ${theme.light.text};
-      --light-textLight:   ${theme.light.textLight};
-      --light-accent:      ${theme.light.accent};
-      --light-border:      ${theme.light.border};
-      --light-shadow:      ${theme.light.shadow};
+      --light-primary:     ${lightPrimary};
+      --light-secondary:   ${lightSecondary};
+      --light-bg:          ${lightBg};
+      --light-surface:     color-mix(in srgb, var(--light-bg) 95%, black);
+      --light-surfaceHov:  color-mix(in srgb, var(--light-bg) 90%, black);
+      --light-text:        #111111;
+      --light-textLight:   #666666;
+      --light-accent:      ${lightAccent};
+      --light-border:      color-mix(in srgb, var(--light-bg) 88%, black);
+      --light-shadow:      rgba(0,0,0,0.08);
 
       /* Dark mode */
-      --dark-primary:      ${theme.dark.primary};
-      --dark-secondary:    ${theme.dark.secondary};
-      --dark-bg:           ${theme.dark.background};
-      --dark-surface:      ${theme.dark.surface};
-      --dark-surfaceHov:   ${theme.dark.surfaceHover};
-      --dark-text:         ${theme.dark.text};
-      --dark-textLight:    ${theme.dark.textLight};
-      --dark-accent:       ${theme.dark.accent};
-      --dark-border:       ${theme.dark.border};
-      --dark-shadow:       ${theme.dark.shadow};
+      --dark-primary:      ${darkPrimary};
+      --dark-secondary:    ${darkSecondary};
+      --dark-bg:           ${darkBg};
+      --dark-surface:      color-mix(in srgb, var(--dark-bg) 93%, white);
+      --dark-surfaceHov:   color-mix(in srgb, var(--dark-bg) 88%, white);
+      --dark-text:         #f3f4f6;
+      --dark-textLight:    #9ca3af;
+      --dark-accent:       ${darkAccent};
+      --dark-border:       color-mix(in srgb, var(--dark-bg) 84%, white);
+      --dark-shadow:       rgba(0,0,0,0.3);
     }
 
     [data-theme="light"] {
@@ -247,6 +381,27 @@ function generateHTML(data, theme) {
     [data-theme="light"] .icon-moon { display: none; }
     [data-theme="dark"]  .icon-sun  { display: none; }
 
+    /* ── Style Overrides Injection ── */
+    ${styleCSS}
+
+    /* ── Progress Bar ── */
+    #scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0%;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      z-index: 1001;
+      transition: width 0.1s ease-out;
+    }
+
+    /* ── Animations ── */
+    .gsap-reveal {
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+
     /* ── Hero ── */
     #hero {
       min-height: 100vh;
@@ -260,7 +415,7 @@ function generateHTML(data, theme) {
     .hero-bg {
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse 80% 60% at 60% 40%, color-mix(in srgb, var(--primary) 8%, transparent), transparent);
+      background: radial-gradient(ellipse 80% 60% at 60% 40%, color-mix(in srgb, var(--primary) 12%, transparent), transparent);
       pointer-events: none;
     }
 
@@ -276,8 +431,6 @@ function generateHTML(data, theme) {
       text-transform: uppercase;
       color: var(--primary);
       margin-bottom: 1.5rem;
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.2s forwards;
     }
 
     .hero-name {
@@ -286,8 +439,6 @@ function generateHTML(data, theme) {
       line-height: 1.05;
       letter-spacing: -0.03em;
       margin-bottom: 1.25rem;
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.35s forwards;
     }
 
     .hero-name .highlight { color: var(--primary); }
@@ -298,8 +449,6 @@ function generateHTML(data, theme) {
       color: var(--textLight);
       max-width: 540px;
       margin-bottom: 2.5rem;
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.5s forwards;
     }
 
     .hero-cta {
@@ -312,12 +461,13 @@ function generateHTML(data, theme) {
       border-radius: 6px;
       font-size: 0.9rem;
       font-weight: 600;
-      transition: opacity 0.2s, transform 0.2s;
-      opacity: 0;
-      animation: fadeUp 0.6s ease 0.65s forwards;
+      transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
     }
 
-    .hero-cta:hover { opacity: 0.88; transform: translateY(-2px); }
+    .hero-cta:hover { 
+      opacity: 0.92; 
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 35%, transparent);
+    }
 
     /* ── About ── */
     .about-text {
@@ -344,7 +494,7 @@ function generateHTML(data, theme) {
       font-size: 0.82rem;
       font-weight: 500;
       color: var(--textLight);
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       cursor: default;
     }
 
@@ -352,7 +502,8 @@ function generateHTML(data, theme) {
       background: var(--surfaceHov);
       border-color: var(--primary);
       color: var(--primary);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px var(--shadow);
     }
 
     /* ── Experience ── */
@@ -364,8 +515,6 @@ function generateHTML(data, theme) {
       gap: 2rem;
       padding: 2rem 0;
       border-bottom: 1px solid var(--border);
-      opacity: 0;
-      animation: fadeUp 0.5s ease forwards;
     }
 
     .exp-item:last-child { border-bottom: none; }
@@ -416,15 +565,13 @@ function generateHTML(data, theme) {
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
-      transition: all 0.25s ease;
-      opacity: 0;
-      animation: fadeUp 0.5s ease forwards;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s, box-shadow 0.3s;
     }
 
     .project-card:hover {
-      transform: translateY(-4px);
+      transform: translateY(-6px);
       border-color: var(--primary);
-      box-shadow: 0 12px 32px var(--shadow);
+      box-shadow: 0 16px 36px var(--shadow);
     }
 
     .project-inner { padding: 1.75rem; }
@@ -443,11 +590,11 @@ function generateHTML(data, theme) {
 
     .project-link {
       color: var(--textLight);
-      transition: color 0.2s;
+      transition: color 0.2s, transform 0.2s;
       display: flex;
     }
 
-    .project-link:hover { color: var(--primary); }
+    .project-link:hover { color: var(--primary); transform: translate(2px, -2px); }
 
     .project-desc {
       font-size: 0.875rem;
@@ -507,12 +654,6 @@ function generateHTML(data, theme) {
       border-top: 1px solid var(--border);
     }
 
-    /* ── Animations ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
     /* ── Responsive ── */
     @media (max-width: 600px) {
       .nav-links { display: none; }
@@ -531,6 +672,9 @@ function generateHTML(data, theme) {
 </head>
 <body>
 
+  <!-- Scroll Progress Indicator -->
+  <div id="scroll-progress"></div>
+
   <!-- Nav -->
   <nav>
     <div class="nav-name">${data.name.split(" ")[0]}<span>.</span></div>
@@ -541,7 +685,7 @@ function generateHTML(data, theme) {
         <li><a href="#projects">Projects</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+      <button class="theme-toggle magnetic-btn" id="themeToggle" aria-label="Toggle dark mode">
         <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
         </svg>
@@ -556,10 +700,10 @@ function generateHTML(data, theme) {
   <section id="hero">
     <div class="hero-bg"></div>
     <div class="container hero-content">
-      <p class="hero-eyebrow">Portfolio</p>
-      <h1 class="hero-name">${data.name.split(" ").map((w, i) => i === data.name.split(" ").length - 1 ? `<span class="highlight">${w}</span>` : w).join(" ")}</h1>
-      <p class="hero-tagline">${data.tagline}</p>
-      <a href="#contact" class="hero-cta">
+      <p class="hero-eyebrow gsap-reveal">Portfolio</p>
+      <h1 class="hero-name gsap-reveal">${data.name.split(" ").map((w, i) => i === data.name.split(" ").length - 1 ? `<span class="highlight">${w}</span>` : w).join(" ")}</h1>
+      <p class="hero-tagline gsap-reveal">${data.tagline}</p>
+      <a href="#contact" class="hero-cta gsap-reveal magnetic-btn">
         Get in touch
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
@@ -569,15 +713,15 @@ function generateHTML(data, theme) {
   <!-- About -->
   <section id="about">
     <div class="container">
-      <p class="section-label">About</p>
-      <p class="about-text">${data.about}</p>
+      <p class="section-label gsap-reveal">About</p>
+      <p class="about-text gsap-reveal">${data.about}</p>
     </div>
   </section>
 
   <!-- Skills -->
   <section id="skills">
     <div class="container">
-      <p class="section-label">Skills</p>
+      <p class="section-label gsap-reveal">Skills</p>
       <div class="skills-grid">${skillsHTML}</div>
     </div>
   </section>
@@ -585,7 +729,7 @@ function generateHTML(data, theme) {
   <!-- Experience -->
   <section id="experience">
     <div class="container">
-      <p class="section-label">Experience</p>
+      <p class="section-label gsap-reveal">Experience</p>
       <div class="exp-list">${experienceHTML}</div>
     </div>
   </section>
@@ -593,7 +737,7 @@ function generateHTML(data, theme) {
   <!-- Projects -->
   <section id="projects">
     <div class="container">
-      <p class="section-label">Projects</p>
+      <p class="section-label gsap-reveal">Projects</p>
       <div class="projects-grid">${projectsHTML}</div>
     </div>
   </section>
@@ -601,8 +745,8 @@ function generateHTML(data, theme) {
   <!-- Contact -->
   <section id="contact">
     <div class="container">
-      <p class="section-label">Contact</p>
-      <p class="contact-intro">${data.cta}</p>
+      <p class="section-label gsap-reveal">Contact</p>
+      <p class="contact-intro gsap-reveal">${data.cta}</p>
       <div class="contact-links">${contactLinks}</div>
     </div>
   </section>
@@ -613,11 +757,16 @@ function generateHTML(data, theme) {
     </div>
   </footer>
 
+  <!-- Animation & Smooth Scroll Engine Scripts (Lenis & GSAP) -->
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+
   <script>
+    // ── 1. Theme Toggle Management ──
     const toggle = document.getElementById('themeToggle');
     const html = document.documentElement;
 
-    // Respect system preference on first load
     const saved = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (saved) {
@@ -633,19 +782,158 @@ function generateHTML(data, theme) {
       localStorage.setItem('theme', next);
     });
 
-    // Intersection observer for scroll animations
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.animationPlayState = 'running';
+    // ── 2. Register GSAP Plugins & Setup Lenis Smooth Scroll ──
+    gsap.registerPlugin(ScrollTrigger);
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    });
+
+    // Sync Lenis scroll updates with GSAP ScrollTrigger
+    lenis.on('scroll', (e) => {
+      ScrollTrigger.update();
+      // Update top progress bar
+      const progress = e.scroll / (document.documentElement.scrollHeight - window.innerHeight);
+      document.getElementById('scroll-progress').style.width = Math.min(100, Math.max(0, progress * 100)) + '%';
+    });
+
+    gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
+    });
+
+    gsap.ticker.lagSmoothing(0);
+
+    // ── 3. Smooth Anchor Link Scrolling via Lenis ──
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          lenis.scrollTo(target, { offset: -70, duration: 1.2 });
         }
       });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll('.exp-item, .project-card').forEach(el => {
-      el.style.animationPlayState = 'paused';
-      observer.observe(el);
     });
+
+    // Respect user reduced-motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!prefersReducedMotion) {
+      // ── 4. GSAP Hero Entrance Sequence ──
+      const heroTl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 0.9 } });
+      heroTl.to('#hero .gsap-reveal', {
+        y: 0,
+        opacity: 1,
+        stagger: 0.15,
+        delay: 0.1
+      });
+
+      // Subtle parallax effect on hero background
+      gsap.to('.hero-bg', {
+        yPercent: 30,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '#hero',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true
+        }
+      });
+
+      // ── 5. GSAP Section Reveal Animations ──
+      gsap.utils.toArray('section:not(#hero)').forEach((sec) => {
+        const reveals = sec.querySelectorAll('.gsap-reveal');
+        if (reveals.length > 0) {
+          gsap.fromTo(reveals, 
+            { y: 35, opacity: 0 }, 
+            {
+              y: 0,
+              opacity: 1,
+              duration: 0.8,
+              stagger: 0.12,
+              ease: 'power3.out',
+              scrollTrigger: {
+                trigger: sec,
+                start: 'top 82%',
+                toggleActions: 'play none none reverse'
+              }
+            }
+          );
+        }
+      });
+
+      // Stagger animation for Skill Tags
+      gsap.fromTo('.skill-tag', 
+        { scale: 0.8, opacity: 0 }, 
+        {
+          scale: 1,
+          opacity: 1,
+          duration: 0.5,
+          stagger: 0.04,
+          ease: 'back.out(1.5)',
+          scrollTrigger: {
+            trigger: '#skills',
+            start: 'top 80%'
+          }
+        }
+      );
+
+      // Stagger animation for Experience Items
+      gsap.fromTo('.exp-item', 
+        { y: 30, opacity: 0 }, 
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.7,
+          stagger: 0.15,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: '#experience',
+            start: 'top 80%'
+          }
+        }
+      );
+
+      // Stagger animation for Project Cards
+      gsap.fromTo('.project-card', 
+        { y: 40, opacity: 0 }, 
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.7,
+          stagger: 0.15,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: '#projects',
+            start: 'top 80%'
+          }
+        }
+      );
+
+      // ── 6. Magnetic Buttons Effect ──
+      document.querySelectorAll('.magnetic-btn').forEach((btn) => {
+        const xTo = gsap.quickTo(btn, "x", { duration: 0.4, ease: "power3.out" });
+        const yTo = gsap.quickTo(btn, "y", { duration: 0.4, ease: "power3.out" });
+
+        btn.addEventListener("mousemove", (e) => {
+          const { clientX, clientY } = e;
+          const { height, width, left, top } = btn.getBoundingClientRect();
+          const x = clientX - (left + width / 2);
+          const y = clientY - (top + height / 2);
+          xTo(x * 0.25);
+          yTo(y * 0.25);
+        });
+
+        btn.addEventListener("mouseleave", () => {
+          xTo(0);
+          yTo(0);
+        });
+      });
+    } else {
+      // Reveal all content immediately for reduced motion
+      gsap.set('.gsap-reveal, .skill-tag, .exp-item, .project-card', { opacity: 1, y: 0, scale: 1 });
+    }
   </script>
 </body>
 </html>`;

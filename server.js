@@ -3,81 +3,188 @@ const multer = require("multer");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
-const { Octokit } = require("@octokit/rest");
+const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 const { extractText } = require("./src/extract");
-const { generatePortfolioData, generateTheme } = require("./src/ai");
+const { generatePortfolioData, generateTheme, generateCoverLetter } = require("./src/ai");
 const { generateHTML } = require("./src/generator");
+const { deployToGitHubPages } = require("./src/deploy");
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
+
+const JWT_SECRET = process.env.JWT_SECRET || "portfolio_secret_key_12345!";
+
+// ── Rate Limiting ──
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // limit each IP to 30 requests per windowMs
+  message: { error: "Too many requests. Please try again later." }
+});
+
+const generateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // limit each IP to 10 generations per 15 minutes
+  message: { error: "Too many portfolio generations. Please try again after 15 minutes." }
+});
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
+
+// ── Multer Storage Configuration ──
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = "uploads/";
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, Date.now() + "-" + Math.random().toString(36).slice(2) + ext);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedExtensions = [".pdf", ".docx"];
+  const allowedMimetypes = [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword"
+  ];
+  if (allowedExtensions.includes(ext) || allowedMimetypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only PDF and DOCX files are allowed."));
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB file limit
+});
 
 // ── In-memory store for generated portfolios ──
 // Key: sessionId, Value: { html, name }
 const portfolioStore = new Map();
 
 // ── Main generation endpoint ──
-app.post("/generate", upload.single("resume"), async (req, res) => {
+app.post("/generate", generateLimiter, upload.single("resume"), async (req, res) => {
   const filePath = req.file?.path;
   try {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded." });
-
-    const ext = path.extname(req.file.originalname).toLowerCase();
-    if (![".pdf", ".docx"].includes(ext)) {
-      return res.status(400).json({ error: "Only PDF and DOCX files are supported." });
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded." });
     }
 
-    const renamedPath = filePath + ext;
-    fs.renameSync(filePath, renamedPath);
+    // Read options
+    const style = req.body.style || "minimalism";
+    const title = req.body.title || "";
+    const favicon = req.body.favicon || "";
+    let colors = {};
+    if (req.body.colors) {
+      try {
+        colors = typeof req.body.colors === "string" ? JSON.parse(req.body.colors) : req.body.colors;
+      } catch (e) {
+        // Fallback if parsing fails
+      }
+    }
 
-    const resumeText = await extractText(renamedPath);
+    const resumeText = await extractText(filePath);
     const portfolioData = await generatePortfolioData(resumeText);
     const theme = await generateTheme(portfolioData);
-    const html = generateHTML(portfolioData, theme);
+    const html = generateHTML(portfolioData, theme, { style, title, favicon, colors });
 
-    fs.unlinkSync(renamedPath);
+    // Clean up uploaded file
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
 
-    // Store with a simple session ID
+    // Store portfolio session
     const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2);
     portfolioStore.set(sessionId, { html, name: portfolioData.name });
 
-    // Clean up old entries after 1 hour
+    // Clean up from memory store after 1 hour
     setTimeout(() => portfolioStore.delete(sessionId), 3600000);
 
-    res.json({ html, name: portfolioData.name, sessionId });
+    res.json({ 
+      html, 
+      name: portfolioData.name, 
+      sessionId, 
+      portfolioData, 
+      resumeText 
+    });
 
   } catch (err) {
-    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    console.error(err);
-    res.status(500).json({ error: err.message || "Something went wrong." });
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    console.error("Generation Error:", err);
+    res.status(500).json({ error: err.message || "Failed to generate portfolio." });
   }
 });
 
-// ── GitHub OAuth Step 1: Redirect to GitHub ──
-app.get("/auth/github", (req, res) => {
+// ── Cover Letter generation endpoint ──
+app.post("/generate-cover-letter", generateLimiter, async (req, res) => {
+  const { resumeText, jobDescription } = req.body;
+  try {
+    if (!resumeText) {
+      return res.status(400).json({ error: "Missing resume text. Please upload a resume first." });
+    }
+    if (!jobDescription) {
+      return res.status(400).json({ error: "Missing job description." });
+    }
+
+    const coverLetter = await generateCoverLetter(resumeText, jobDescription);
+    res.json({ coverLetter });
+  } catch (err) {
+    console.error("Cover Letter Error:", err);
+    res.status(500).json({ error: err.message || "Failed to generate cover letter." });
+  }
+});
+
+// ── GitHub OAuth Step 1: Redirect to GitHub with Secure JWT State ──
+app.get("/auth/github", apiLimiter, (req, res) => {
   const { sessionId } = req.query;
+  if (!sessionId || !portfolioStore.has(sessionId)) {
+    return res.status(400).send("Invalid or expired session. Please generate again.");
+  }
+
+  // Cryptographically sign the sessionId in state parameter using JWT to prevent CSRF
+  const stateToken = jwt.sign({ sessionId }, JWT_SECRET, { expiresIn: "15m" });
+
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID,
-    scope: "repo user",
-    state: sessionId,
-    
+    scope: "public_repo", // Secure down-scoped permission
+    state: stateToken,
   });
-  const oauthUrl = `https://github.com/login/oauth/authorize?${params}`;
-  const logoutThenAuth = `https://github.com/logout?return_to=${encodeURIComponent(oauthUrl)}`;
+
   res.redirect(`https://github.com/login/oauth/authorize?${params}`);
 });
 
 // ── GitHub OAuth Step 2: Callback from GitHub ──
-app.get("/auth/callback", async (req, res) => {
-  const { code, state: sessionId } = req.query;
+app.get("/auth/callback", apiLimiter, async (req, res) => {
+  const { code, state: stateToken } = req.query;
 
   try {
-    // Exchange code for access token
+    if (!stateToken) {
+      throw new Error("Missing OAuth state verification token.");
+    }
+
+    // Verify JWT state token to protect against CSRF attacks
+    let sessionId;
+    try {
+      const decoded = jwt.verify(stateToken, JWT_SECRET);
+      sessionId = decoded.sessionId;
+    } catch (err) {
+      throw new Error("OAuth state verification failed or expired. Please try again.");
+    }
+
+    // Exchange authorization code for access token
     const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
       method: "POST",
       headers: {
@@ -94,76 +201,27 @@ app.get("/auth/callback", async (req, res) => {
     const tokenData = await tokenRes.json();
     const accessToken = tokenData.access_token;
 
-    if (!accessToken) throw new Error("Failed to get access token from GitHub.");
+    if (!accessToken) {
+      throw new Error("Failed to authenticate with GitHub.");
+    }
 
-    // Get portfolio HTML from store
+    // Get portfolio HTML from memory store
     const portfolio = portfolioStore.get(sessionId);
-    if (!portfolio) throw new Error("Portfolio session expired. Please generate again.");
-
-    // Get GitHub username
-    const octokit = new Octokit({ auth: accessToken });
-    const { data: user } = await octokit.rest.users.getAuthenticated();
-    const username = user.login;
-    const repoName = `${username}.github.io`;
-
-    // Create or get repo
-    try {
-      await octokit.rest.repos.createForAuthenticatedUser({
-        name: repoName,
-        description: `${portfolio.name}'s portfolio — generated by Portfol.io`,
-        auto_init: false,
-        private: false,
-      });
-    } catch (e) {
-      // Repo already exists, that's fine
-      if (!e.message.includes("already exists")) throw e;
+    if (!portfolio) {
+      throw new Error("Portfolio session expired. Please generate again.");
     }
 
-    // Wait a moment for repo to be ready
-    await new Promise(r => setTimeout(r, 1500));
-
-    // Push index.html to repo
-    const content = Buffer.from(portfolio.html).toString("base64");
-
-    // Check if file already exists (to get SHA for update)
-    let sha;
-    try {
-      const { data: existing } = await octokit.rest.repos.getContent({
-        owner: username,
-        repo: repoName,
-        path: "index.html",
-      });
-      sha = existing.sha;
-    } catch (e) {
-      // File doesn't exist yet, sha stays undefined
-    }
-
-    await octokit.rest.repos.createOrUpdateFileContents({
-      owner: username,
-      repo: repoName,
-      path: "index.html",
-      message: "Deploy portfolio via Portfol.io",
-      content,
-      ...(sha ? { sha } : {}),
+    // Deploy using modular deploy.js logic
+    const { liveUrl } = await deployToGitHubPages({
+      accessToken,
+      html: portfolio.html,
+      portfolioName: portfolio.name
     });
 
-    // Enable GitHub Pages
-    try {
-      await octokit.rest.repos.createPagesSite({
-        owner: username,
-        repo: repoName,
-        source: { branch: "main", path: "/" },
-      });
-    } catch (e) {
-      // Pages might already be enabled
-    }
-
-    // Redirect to success page
-    const liveUrl = `https://${repoName}`;
     res.redirect(`/?deployed=true&url=${encodeURIComponent(liveUrl)}&name=${encodeURIComponent(portfolio.name)}`);
 
   } catch (err) {
-    console.error(err);
+    console.error("OAuth callback error:", err);
     res.redirect(`/?error=${encodeURIComponent(err.message)}`);
   }
 });

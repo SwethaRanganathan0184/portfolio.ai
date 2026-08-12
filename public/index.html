@@ -746,7 +746,9 @@
       <div class="nav-badge">AI-powered ✦ Free</div>
     </nav>
 
-    <!-- Hero -->
+    <!-- Tab 1: Portfolio Section -->
+    <div id="portfolio-section" class="tab-content">
+      <!-- Hero -->
     <section class="hero">
       <div class="hero-content">
         <div class="hero-eyebrow">Drop your resume. Get a portfolio.</div>
@@ -892,7 +894,125 @@
           </div>
         </div>
       </div>
-    </section>
+    </div>
+
+    <!-- Tab 2: Cover Letter Section -->
+    <div id="cover-letter-section" class="tab-content" style="display: none;">
+      <section class="hero" style="min-height: auto; padding: 6rem 2rem 5rem;">
+        <div class="hero-content" style="max-width: 800px; margin: 0 auto;">
+          <div class="hero-eyebrow" style="display: inline-flex; align-items: center; gap: 0.5rem;">Tailored Pitch Generator</div>
+          <h1 class="hero-title" style="font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1; margin-bottom: 1.5rem;">
+            Cover Letter<span>.</span>gen
+          </h1>
+          <p class="hero-sub" style="margin-bottom: 3rem;">
+            Generate an ATS-optimized, high-impact cover letter tailored specifically to your target job description.
+          </p>
+
+          <div class="upload-wrapper" style="max-width: 680px;">
+            <div class="upload-card" style="padding: 2.5rem 2rem;">
+              
+              <!-- Warning if no resume has been uploaded yet -->
+              <div id="clResumeWarning" style="padding: 1rem; background: rgba(255, 165, 0, 0.08); border: 1px solid rgba(255, 165, 0, 0.25); border-radius: 8px; font-size: 0.82rem; color: #ffb84d; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-family: var(--mono);">
+                <span>⚠️ Note: Please upload your resume in the **Portfolio** tab first to enable tailoring.</span>
+              </div>
+
+              <!-- Input JD -->
+              <div style="text-align: left; margin-bottom: 1.5rem;">
+                <label for="jobDescriptionInput" style="display: block; font-size: 0.78rem; color: var(--textMid); margin-bottom: 0.5rem; font-family: var(--mono); font-weight: bold;">PASTE TARGET JOB DESCRIPTION</label>
+                <textarea id="jobDescriptionInput" placeholder="Paste the job description details here (roles, responsibilities, requirements)..." style="width: 100%; min-height: 180px; padding: 0.75rem; background: var(--bg); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 0.85rem; font-family: var(--font); resize: vertical; line-height: 1.6;"></textarea>
+              </div>
+
+              <button class="generate-btn" id="generateCLBtn" disabled style="width: 100%;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                Generate Cover Letter
+              </button>
+
+              <div class="progress-wrap" id="clProgressWrap" style="margin-top: 1.5rem; display: none;">
+                <div class="progress-steps">
+                  <div class="progress-step" id="clStep1">
+                    <div class="step-dot"></div>
+                    <div class="step-spinner"></div>
+                    <span>Tailoring letter to job description</span>
+                  </div>
+                  <div class="progress-step" id="clStep2">
+                    <div class="step-dot"></div>
+                    <div class="step-spinner"></div>
+                    <span>Polishing tone & metrics</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cover Letter Output -->
+              <div id="clOutputCard" style="display: none; margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 2rem; text-align: left;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                  <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--accent); font-family: var(--mono);">Generated Cover Letter</h3>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn-download" id="copyCLBtn" style="padding: 0.5rem 0.85rem; font-size: 0.75rem; background: var(--surface2); border: 1px solid var(--border2); color: var(--textMid); cursor: pointer;">Copy Text</button>
+                    <button class="btn-download" id="downloadCLBtn" style="padding: 0.5rem 0.85rem; font-size: 0.75rem; cursor: pointer;">Download TXT</button>
+                  </div>
+                </div>
+                <div id="clTextOutput" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; color: var(--textMid); font-size: 0.88rem; line-height: 1.7; white-space: pre-wrap; font-family: var(--font); max-height: 400px; overflow-y: auto;"></div>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Tab 3: Profile Section -->
+    <div id="profile-section" class="tab-content" style="display: none;">
+      <section class="hero" style="min-height: auto; padding: 6rem 2rem 5rem;">
+        <div class="hero-content" style="max-width: 900px; text-align: left; width: 100%; margin: 0 auto;">
+          <div class="hero-eyebrow" style="text-align: center;">My Dashboard</div>
+          <h1 class="hero-title" style="font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 2.5rem; text-align: center; line-height: 1;">
+            Candidate Profile<span>.</span>
+          </h1>
+
+          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: start;" class="profile-grid">
+            <!-- Sidebar info: Portfolio and Resume Summary -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              
+              <!-- Portfolio link status -->
+              <div class="step-card" style="padding: 1.5rem;">
+                <div style="font-size: 0.65rem; color: var(--primary); font-family: var(--mono); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em;">My Portfolio</div>
+                <div id="profPortfolioLink" style="font-size: 0.85rem; font-weight: bold; word-break: break-all; margin-bottom: 0.75rem; color: var(--text);">Not deployed yet.</div>
+                <a id="profPortfolioBtn" href="#" target="_blank" style="display: none; width: 100%; text-align: center; padding: 0.5rem; background: var(--primary); color: white; border-radius: 6px; font-size: 0.75rem; font-weight: bold; transition: opacity 0.2s; text-decoration: none;">Open Portfolio</a>
+              </div>
+
+              <!-- Latest Resume Status -->
+              <div class="step-card" style="padding: 1.5rem;">
+                <div style="font-size: 0.65rem; color: var(--accent); font-family: var(--mono); margin-bottom: 0.75rem; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em;">Latest Resume</div>
+                <div id="profNoResume" style="font-size: 0.82rem; color: var(--textLight);">No resume uploaded yet. Upload in the **Portfolio** tab to get started.</div>
+                <div id="profResumeDetails" style="display: none;">
+                  <h3 id="profName" style="font-size: 1.05rem; font-weight: bold; margin-bottom: 0.25rem;">—</h3>
+                  <p id="profTagline" style="font-size: 0.78rem; color: var(--textMid); margin-bottom: 1rem; line-height: 1.4;">—</p>
+                  
+                  <div style="font-size: 0.65rem; color: var(--textLight); font-family: var(--mono); margin-bottom: 0.35rem; font-weight: bold;">EXTRACTED SKILLS</div>
+                  <div id="profSkills" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem;"></div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Main area: Cover Letter History -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div class="step-card" style="padding: 2rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                  <h3 style="font-size: 1rem; font-weight: bold; color: var(--text);">My Generated Cover Letters</h3>
+                  <span id="clHistoryCount" style="font-family: var(--mono); font-size: 0.72rem; color: var(--accent); background: var(--accentDim); border: 1px solid rgba(0, 229, 204, 0.2); padding: 0.1rem 0.5rem; border-radius: 100px;">0 Letters</span>
+                </div>
+
+                <div id="clHistoryList" style="display: flex; flex-direction: column; gap: 1rem;">
+                  <!-- Dynamically populated cover letters -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
 
     <!-- Footer -->
     <footer>
@@ -1022,6 +1142,19 @@
 
         const formData = new FormData();
         formData.append("resume", selectedFile);
+        
+        // Append customizations
+        formData.append("style", activeStyle);
+        formData.append("title", document.getElementById("customTitle").value.trim());
+        formData.append("favicon", document.getElementById("customFavicon").value.trim());
+        
+        const colors = {
+          primary: document.getElementById("colorPrimary").value,
+          secondary: document.getElementById("colorSecondary").value,
+          accent: document.getElementById("colorAccent").value,
+          background: document.getElementById("colorBackground").value,
+        };
+        formData.append("colors", JSON.stringify(colors));
 
         try {
           setStep(0);
@@ -1051,6 +1184,19 @@
 
           generatedHTML = data.html;
 
+          // Save latest resume details to local storage
+          if (data.portfolioData) {
+            localStorage.setItem("latest_resume", JSON.stringify({
+              name: data.portfolioData.name || "",
+              tagline: data.portfolioData.tagline || "",
+              email: data.portfolioData.email || "",
+              skills: data.portfolioData.skills || [],
+              resumeText: data.resumeText || ""
+            }));
+            renderProfile();
+            checkResumeState();
+          }
+
           await delay(500);
           showPreview(data.name, data.html, data.sessionId);
         } catch (err) {
@@ -1070,7 +1216,10 @@
       }
 
       // ── Preview ──
-      function showPreview(name, html) {
+      let currentSessionId = null;
+
+      function showPreview(name, html, sessionId) {
+        currentSessionId = sessionId;
         modalName.textContent = name;
         previewFrame.srcdoc = html;
         modal.classList.add("visible");
@@ -1099,45 +1248,296 @@
       });
 
       // ── Deploy button ──
-let currentSessionId = null;
+      document.getElementById('deployBtn').addEventListener('click', () => {
+        if (!currentSessionId) return;
+        window.location.href = `/auth/github?sessionId=${currentSessionId}`;
+      });
 
-// Store sessionId when generation completes
-const originalFetch = window.fetch;
-document.getElementById('generateBtn').addEventListener('click', () => {}, true);
+      // ── Cover Letter generator ──
+      const jobDescriptionInput = document.getElementById("jobDescriptionInput");
+      const generateCLBtn = document.getElementById("generateCLBtn");
+      const clProgressWrap = document.getElementById("clProgressWrap");
+      const clStep1 = document.getElementById("clStep1");
+      const clStep2 = document.getElementById("clStep2");
+      const clOutputCard = document.getElementById("clOutputCard");
+      const clTextOutput = document.getElementById("clTextOutput");
 
-// Override to capture sessionId — easier: just update showPreview
-function showPreview(name, html, sessionId) {
-  currentSessionId = sessionId;
-  modalName.textContent = name;
-  previewFrame.srcdoc = html;
-  modal.classList.add('visible');
-}
+      function checkResumeState() {
+        const resume = JSON.parse(localStorage.getItem("latest_resume"));
+        const clResumeWarning = document.getElementById("clResumeWarning");
 
-document.getElementById('deployBtn').addEventListener('click', () => {
-  if (!currentSessionId) return;
-  window.location.href = `/auth/github?sessionId=${currentSessionId}`;
-});
+        if (resume && resume.resumeText) {
+          clResumeWarning.style.display = "none";
+          generateCLBtn.disabled = !jobDescriptionInput.value.trim();
+        } else {
+          clResumeWarning.style.display = "flex";
+          generateCLBtn.disabled = true;
+        }
+      }
 
-// ── Handle redirect back from GitHub OAuth ──
-const params = new URLSearchParams(window.location.search);
-if (params.get('deployed') === 'true') {
-  const url = params.get('url');
-  const name = params.get('name');
-  const banner = document.getElementById('successBanner');
-  const link = document.getElementById('liveLink');
-  link.href = url;
-  link.textContent = url;
-  banner.classList.add('visible');
-  setTimeout(() => banner.classList.remove('visible'), 10000);
-  // Clean URL
-  window.history.replaceState({}, '', '/');
-}
+      jobDescriptionInput.addEventListener("input", () => {
+        checkResumeState();
+      });
 
-if (params.get('error')) {
-  const msg = params.get('error');
-  alert('Deploy failed: ' + msg);
-  window.history.replaceState({}, '', '/');
-}
+      generateCLBtn.addEventListener("click", async () => {
+        const resume = JSON.parse(localStorage.getItem("latest_resume"));
+        const jd = jobDescriptionInput.value.trim();
+        if (!resume || !resume.resumeText || !jd) return;
+
+        generateCLBtn.disabled = true;
+        clProgressWrap.style.display = "block";
+        clOutputCard.style.display = "none";
+        
+        clStep1.classList.add("active");
+        clStep1.classList.remove("done");
+        clStep2.classList.remove("active", "done");
+
+        try {
+          await delay(600);
+          clStep1.classList.remove("active");
+          clStep1.classList.add("done");
+          clStep2.classList.add("active");
+
+          const res = await fetch("/generate-cover-letter", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              resumeText: resume.resumeText,
+              jobDescription: jd
+            })
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed to generate cover letter.");
+
+          clStep2.classList.remove("active");
+          clStep2.classList.add("done");
+          await delay(400);
+
+          clTextOutput.textContent = data.coverLetter;
+          clOutputCard.style.display = "block";
+
+          // Save to history in localStorage
+          const companyMatch = jd.match(/(?:at\s+|for\s+)([A-Z][a-zA-Z0-9\s,\.\-&]{1,40})/);
+          const company = companyMatch ? companyMatch[1].trim() : "Target Company";
+          const roleMatch = jd.match(/(?:as\s+|role\s+of\s+|position\s+of\s+)([A-Z][a-zA-Z0-9\s,\.\-&]{1,40})/i);
+          const role = roleMatch ? roleMatch[1].trim() : "Target Role";
+
+          const coverLetters = JSON.parse(localStorage.getItem("cover_letters")) || [];
+          coverLetters.unshift({
+            id: Date.now().toString(36),
+            company,
+            role,
+            date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+            content: data.coverLetter
+          });
+          localStorage.setItem("cover_letters", JSON.stringify(coverLetters));
+          
+          renderProfile();
+        } catch (err) {
+          alert("Cover letter generation failed: " + err.message);
+        } finally {
+          generateCLBtn.disabled = false;
+          clProgressWrap.style.display = "none";
+        }
+      });
+
+      document.getElementById("copyCLBtn").addEventListener("click", () => {
+        navigator.clipboard.writeText(clTextOutput.textContent);
+        const btn = document.getElementById("copyCLBtn");
+        const originalText = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(() => btn.textContent = originalText, 2000);
+      });
+
+      document.getElementById("downloadCLBtn").addEventListener("click", () => {
+        const blob = new Blob([clTextOutput.textContent], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "Cover_Letter.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // ── Profile Rendering ──
+      function renderProfile() {
+        const resume = JSON.parse(localStorage.getItem("latest_resume"));
+        const profNoResume = document.getElementById("profNoResume");
+        const profResumeDetails = document.getElementById("profResumeDetails");
+        const profName = document.getElementById("profName");
+        const profTagline = document.getElementById("profTagline");
+        const profSkills = document.getElementById("profSkills");
+
+        if (resume) {
+          profNoResume.style.display = "none";
+          profResumeDetails.style.display = "block";
+          profName.textContent = resume.name || "—";
+          profTagline.textContent = resume.tagline || "—";
+          
+          profSkills.innerHTML = "";
+          (resume.skills || []).forEach(skill => {
+            const badge = document.createElement("span");
+            badge.style.fontSize = "0.68rem";
+            badge.style.background = "var(--surface2)";
+            badge.style.border = "1px solid var(--border)";
+            badge.style.padding = "0.2rem 0.5rem";
+            badge.style.borderRadius = "4px";
+            badge.style.color = "var(--textMid)";
+            badge.style.fontFamily = "var(--mono)";
+            badge.textContent = skill;
+            profSkills.appendChild(badge);
+          });
+        } else {
+          profNoResume.style.display = "block";
+          profResumeDetails.style.display = "none";
+        }
+
+        // Render Portfolio Deployment Link
+        const portfolioLink = localStorage.getItem("portfolio_link");
+        const profPortfolioLink = document.getElementById("profPortfolioLink");
+        const profPortfolioBtn = document.getElementById("profPortfolioBtn");
+        
+        if (portfolioLink) {
+          profPortfolioLink.innerHTML = `<a href="${portfolioLink}" target="_blank" style="color: var(--primary); text-decoration: underline;">${portfolioLink}</a>`;
+          profPortfolioBtn.style.display = "block";
+          profPortfolioBtn.href = portfolioLink;
+        } else {
+          profPortfolioLink.textContent = "Not deployed yet. Start in the Portfolio tab.";
+          profPortfolioBtn.style.display = "none";
+        }
+
+        // Render Cover Letters History
+        const coverLetters = JSON.parse(localStorage.getItem("cover_letters")) || [];
+        const clHistoryCount = document.getElementById("clHistoryCount");
+        const clHistoryList = document.getElementById("clHistoryList");
+        
+        clHistoryCount.textContent = `${coverLetters.length} Letter${coverLetters.length === 1 ? '' : 's'}`;
+        clHistoryList.innerHTML = "";
+
+        if (coverLetters.length === 0) {
+          clHistoryList.innerHTML = `<div style="text-align: center; font-size: 0.85rem; color: var(--textLight); padding: 2rem;">No cover letters generated yet.</div>`;
+          return;
+        }
+
+        coverLetters.forEach(letter => {
+          const item = document.createElement("div");
+          item.className = "cl-item";
+          item.innerHTML = `
+            <div class="cl-header">
+              <div>
+                <span class="cl-title">${escapeHTML(letter.company)} — ${escapeHTML(letter.role)}</span>
+                <div style="font-size: 0.7rem; color: var(--textLight); margin-top: 0.2rem;">Generated on ${escapeHTML(letter.date)}</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <button class="delete-letter-btn" data-id="${letter.id}" style="background: none; border: none; color: var(--textLight); cursor: pointer; padding: 0.25rem; display: flex; align-items: center;" title="Delete letter">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="arrow" style="transform: rotate(0deg); transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </div>
+            </div>
+            <div class="cl-body">
+              <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 1rem;">
+                <button class="btn-copy-history" style="padding: 0.35rem 0.65rem; font-size: 0.7rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--textMid); cursor: pointer;">Copy Text</button>
+              </div>
+              <div>${escapeHTML(letter.content)}</div>
+            </div>
+          `;
+          
+          // Toggle accordion
+          const header = item.querySelector(".cl-header");
+          const body = item.querySelector(".cl-body");
+          const arrow = item.querySelector(".arrow");
+          
+          header.addEventListener("click", (e) => {
+            if (e.target.closest(".delete-letter-btn")) return;
+            const isOpen = body.style.display === "block";
+            body.style.display = isOpen ? "none" : "block";
+            arrow.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
+          });
+
+          // Delete event
+          item.querySelector(".delete-letter-btn").addEventListener("click", () => {
+            if (confirm("Are you sure you want to delete this cover letter?")) {
+              const updated = coverLetters.filter(l => l.id !== letter.id);
+              localStorage.setItem("cover_letters", JSON.stringify(updated));
+              renderProfile();
+            }
+          });
+
+          // Copy from history event
+          item.querySelector(".btn-copy-history").addEventListener("click", (e) => {
+            navigator.clipboard.writeText(letter.content);
+            e.target.textContent = "Copied!";
+            setTimeout(() => e.target.textContent = "Copy Text", 2000);
+          });
+
+          clHistoryList.appendChild(item);
+        });
+      }
+
+      function escapeHTML(str) {
+        if (!str) return "";
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // ── Tab Navigation ──
+      const menuLinks = document.querySelectorAll(".menu-link");
+      const tabContents = document.querySelectorAll(".tab-content");
+
+      menuLinks.forEach(link => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          menuLinks.forEach(l => {
+            l.classList.remove("active");
+            l.style.color = "var(--textLight)";
+            l.style.fontWeight = "normal";
+          });
+          link.classList.add("active");
+          link.style.color = "var(--text)";
+          link.style.fontWeight = "bold";
+
+          const target = link.getAttribute("data-target");
+          tabContents.forEach(tab => {
+            if (tab.id === target) {
+              tab.style.display = "block";
+            } else {
+              tab.style.display = "none";
+            }
+          });
+        });
+      });
+
+      // ── Handle redirect back from GitHub OAuth ──
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('deployed') === 'true') {
+        const url = params.get('url');
+        localStorage.setItem("portfolio_link", url);
+        renderProfile();
+        
+        const banner = document.getElementById('successBanner');
+        const link = document.getElementById('liveLink');
+        link.href = url;
+        link.textContent = url;
+        banner.classList.add('visible');
+        setTimeout(() => banner.classList.remove('visible'), 10000);
+        window.history.replaceState({}, '', '/');
+      }
+
+      if (params.get('error')) {
+        const msg = params.get('error');
+        alert('Deploy failed: ' + msg);
+        window.history.replaceState({}, '', '/');
+      }
+
+      // Page initialization
+      checkResumeState();
+      renderProfile();
     </script>
     <div class="success-banner" id="successBanner">
   <div class="success-title">🎉 Portfolio deployed!</div>

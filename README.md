@@ -1,27 +1,30 @@
-# Portfol.io — AI Portfolio Generator
+# Portfol.io — AI Portfolio & Cover Letter Suite
 
-Portfol.io turns your resume into a beautiful, deployable portfolio website in seconds. Upload a PDF or DOCX resume, and AI generates a fully designed portfolio with a custom color theme — ready to host on GitHub Pages for free.
+Portfol.io is an all-in-one AI companion that turns your resume into a beautiful, deployable portfolio website and tailored cover letters in seconds. 
 
 ---
 
-## What It Does
+## Features
 
-- Upload your resume (PDF or DOCX)
-- AI reads it and generates compelling portfolio copy
-- AI picks a custom color theme based on your field
-- Preview your portfolio instantly in the browser
-- Download it as a single HTML file
-- Or deploy it directly to GitHub Pages in one click
+- 💻 **AI Portfolio Generator**: Upload a PDF or DOCX resume, select a visual style, pick a page title/favicon, customize a 4-color palette (or choose a quick preset), and generate a fully designed portfolio.
+- 🎨 **Premium Styling Options**: Supports four visually striking layout modes: **Minimalism**, **Glassmorphism**, **Brutalism**, and **Playful**, fully integrated with Lenis smooth scrolling and GSAP animations.
+- 📝 **Tailored Cover Letter Generator**: Paste a target Job Description to generate an ATS-optimized, professional cover letter highlighting matching accomplishments from your resume.
+- 👤 **Candidate Profile Dashboard**: View your latest uploaded resume details (tagline, skills), keep track of your live portfolio link, and manage your cover letter generation history.
+- 🔒 **Privacy-First State**: Your resume summary, deployment status, and cover letter archives are stored completely offline in your browser's `localStorage`. No personal data is persisted on server databases.
+- 🚀 **One-Click Deploy**: Deploy your generated portfolio directly to GitHub Pages in seconds.
 
 ---
 
 ## Tech Stack
 
 - **Backend** — Node.js + Express
-- **AI** — Google Gemini 2.5 Flash
-- **Resume parsing** — pdf-parse, mammoth
-- **GitHub deployment** — GitHub OAuth + Octokit
-- **Frontend** — Vanilla HTML/CSS/JS
+- **AI Engine** — Google Gemini 2.5 Flash / 1.5 Flash (via `@google/generative-ai`)
+- **Resume Parsing** — `pdf-parse`, `mammoth`
+- **GitHub API Deployment** — GitHub OAuth + `@octokit/rest`
+- **Frontend** — Vanilla HTML, CSS, JavaScript (tabs, localStorage sync)
+- **Scroller & Animation** — Lenis + GSAP (dynamic motion control)
+- **Security** — `express-rate-limit`, JWT state CSRF signatures, down-scoped OAuth scopes (`public_repo`), file filters, HTML escaping XSS mitigations
+
 
 ---
 
@@ -120,4 +123,4 @@ Pull requests are welcome. For major changes please open an issue first.
 
 ---
 
-Built with ✦ by [Your Name](https://github.com/YOUR_USERNAME)
+Built with ✦ by [Naveen S](https://github.com/nh-44)
