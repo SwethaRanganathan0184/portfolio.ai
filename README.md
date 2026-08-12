@@ -123,4 +123,4 @@ Pull requests are welcome. For major changes please open an issue first.
 
 ---
 
-Built with ✦ by [Naveen S](https://github.com/nh-44)
+Built with ✦ by [Swetha]([https://github.com/nh-44](https://github.com/SwethaRanganathan0184)) and [Naveen S](https://github.com/nh-44) 
