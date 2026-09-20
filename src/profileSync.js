@@ -1,4 +1,15 @@
-const { Octokit } = require("@octokit/rest");
+const { PORTFOLIO_MARKER } = require("./generator");
+
+// @octokit/rest is a pure ESM package as of v20+, so it can't be loaded with
+// require() from this CommonJS file. Load it lazily via dynamic import()
+// instead (cached after the first call).
+let _octokitCtorPromise;
+function getOctokitCtor() {
+  if (!_octokitCtorPromise) {
+    _octokitCtorPromise = import("@octokit/rest").then((mod) => mod.Octokit);
+  }
+  return _octokitCtorPromise;
+}
 
 // A single secret Gist acts as the "database" — no server-side storage at all.
 // It's found again on every sign-in by its description, the same way
@@ -74,6 +85,7 @@ function clampProfileData(data) {
 async function getProfile({ accessToken }) {
   if (!accessToken) throw new Error("Missing GitHub access token.");
 
+  const Octokit = await getOctokitCtor();
   const octokit = new Octokit({ auth: accessToken });
   const { data: user } = await octokit.rest.users.getAuthenticated();
   const { data: gists } = await octokit.rest.gists.list({ per_page: MAX_GISTS_TO_SCAN });
@@ -105,6 +117,7 @@ async function saveProfile({ accessToken, data }) {
   const clamped = clampProfileData(data);
   const content = JSON.stringify(clamped, null, 2);
 
+  const Octokit = await getOctokitCtor();
   const octokit = new Octokit({ auth: accessToken });
   const { data: gists } = await octokit.rest.gists.list({ per_page: MAX_GISTS_TO_SCAN });
   const existing = findProfileGist(gists);
