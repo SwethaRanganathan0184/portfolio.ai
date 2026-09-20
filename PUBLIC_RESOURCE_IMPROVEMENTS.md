@@ -1,146 +1,99 @@
 # Portfol.io — Public Resource & Open Source Readiness Blueprint
 
-This document provides a comprehensive analysis of **Portfol.io** and details actionable recommendations to transform the codebase into a production-grade, secure, scalable, and community-friendly open-source public resource.
+This document tracks what's been fixed toward making Portfol.io a production-grade, secure, and community-friendly open-source resource, and what's still genuinely open. It's updated in place rather than left stale — treat it as current status, not a historical snapshot.
 
 ---
 
 ## Executive Summary
 
-**Portfol.io** is a high-value tool that converts user resumes (PDF/DOCX) into customized, single-page portfolio websites using AI (Google Gemini) and deploys them directly to GitHub Pages. 
+**Portfol.io** converts a resume (PDF/DOCX, or pasted text) into a customized, single-page portfolio website using Gemini and deploys it directly to GitHub Pages, plus generates tailored cover letters and an ATS resume review.
 
-While the core functionality is functional and well-conceived, several critical areas must be addressed before releasing or marketing it as a public resource:
-1. **Security & Auth Vulnerabilities** (CSRF, broad OAuth scopes, missing rate limits, XSS risks).
-2. **Architectural Bottlenecks** (in-memory state storage, dead code files, hardcoded models).
-3. **User Experience & Customization** (lack of pre-deployment editing, template selection).
-4. **Developer Experience & Operations** (missing tests, Docker containerization, CI/CD pipelines).
-5. **Open Source Governance** (missing License, Contributing guidelines, Security policy).
+Of the five areas originally flagged, security, testing/CI, and pre-deployment UX are now addressed. What's left is mostly open-source project hygiene (license, contributing docs) and a couple of deeper architectural choices that were deliberately deferred rather than left unexamined.
+
+1. ~~Security & Auth Vulnerabilities~~ — ✅ Resolved (see §1)
+2. Architectural Bottlenecks — ⚠️ Mostly resolved; one documented, deliberate tradeoff remains (see §2)
+3. ~~User Experience & Customization~~ — ✅ Resolved (see §3)
+4. Developer Experience & Operations — ⚠️ Testing/CI done; Docker and lint tooling still open (see §4)
+5. Open Source Governance — ❌ Still open (see §5)
 
 ---
 
-## 1. Security & Data Protection
+## 1. Security & Data Protection — ✅ Resolved
 
-| Issue | Risk Level | Description & Mitigation |
+| Issue | Status | Notes |
 | :--- | :---: | :--- |
-| **OAuth State & CSRF** | 🔴 High | `server.js` uses `state: sessionId` without cryptographic random nonce verification, making OAuth flows susceptible to CSRF attacks. <br>**Fix:** Implement session cookies or signed JWTs for OAuth `state` validation. |
-| **Over-Privileged OAuth Scope** | 🔴 High | The app requests `scope: "repo user"`, granting full read/write access to all public and private user repositories. <br>**Fix:** Downgrade scope to `public_repo` (or leverage fine-grained GitHub App tokens). |
-| **Missing Rate Limiting** | 🔴 High | Public `/generate` endpoints accept file uploads and invoke paid/rate-limited Gemini APIs without protection against abuse or DoS. <br>**Fix:** Add `express-rate-limit` (e.g., 5 generations per IP per hour). |
-| **File Upload Vulnerabilities** | 🟡 Medium | `multer` writes uploaded files to disk before checking extensions, and relies only on extension matching rather than MIME/magic byte validation. <br>**Fix:** Use `multer` memory storage or strict `fileFilter` validating magic numbers. |
-| **Template XSS Risk** | 🟡 Medium | Resume content extracted by AI is injected directly into HTML string templates in `generator.js` without HTML escaping. <br>**Fix:** Sanitize/escape all dynamic variables before rendering HTML templates. |
-| **Permissive CORS** | 🟡 Medium | `app.use(cors())` enables wildcard CORS origins. <br>**Fix:** Restrict allowed origins via environment configuration in production. |
+| **OAuth State & CSRF** | ✅ Fixed | `state` is a signed JWT (`sessionId` + repo choice), verified on callback. |
+| **Over-Privileged OAuth Scope** | ✅ Fixed | Deploy uses `public_repo`; the separate optional sign-in flow uses only `gist` — nothing broader. |
+| **Missing Rate Limiting** | ✅ Fixed | `express-rate-limit` on generation, auth, and sync endpoints. |
+| **File Upload Vulnerabilities** | ⚠️ Partial | Extension + MIME `fileFilter` and a 10MB cap are in place; true magic-byte/content sniffing is still not implemented. Low real-world severity since `pdf-parse`/`mammoth` fail gracefully on non-matching content, but a genuine gap if someone wants to close it further. |
+| **Template XSS Risk** | ✅ Fixed | `generator.js` previously defined escaped variables but used the raw unescaped values in several template spots (hero name/tagline/about/CTA, footer) — fixed, plus URL-scheme validation (`http(s)://` only) on every link and CSS-injection-proof color validation. |
+| **Permissive CORS** | ✅ Fixed | `CORS_ORIGIN` env var restricts origins in production; open by default only for local dev. |
+| **Hardcoded JWT fallback secret** | ✅ Fixed | Previously fell back to a hardcoded string if `JWT_SECRET` was unset; now generates a random per-process secret and warns instead. |
 
 ---
 
-## 2. Architecture & Backend Robustness
+## 2. Architecture & Backend Robustness — ⚠️ Mostly resolved
 
-- **In-Memory Session Store (`portfolioStore = new Map()`)**
-  - *Current Problem:* Sessions are stored in server memory. Restarting the server or deploying behind a multi-instance load balancer / serverless host (Render, Vercel, Railway) breaks GitHub deployment callbacks.
-  - *Improvement:* Replace `portfolioStore` with stateless encrypted JWTs/cookies or a lightweight Redis store.
-- **Dead Code Cleanup (`src/deploy.js`)**
-  - *Current Problem:* `src/deploy.js` is empty (0 bytes) despite being documented in `README.md`.
-  - *Improvement:* Modularize GitHub deployment logic out of `server.js` into `src/deploy.js`.
-- **Gemini API & AI Resilience**
-  - *Current Problem:* Hardcoded model string `gemini-2.5-flash` in `src/ai.js`, prompt parsing relies on string regex fallback, and there is no API retry/fallback logic.
-  - *Improvement:*
-    - Make model configurable via `GEMINI_MODEL` env variable (defaulting to stable versions like `gemini-1.5-flash` or `gemini-2.0-flash`).
-    - Use Gemini's native `responseSchema` / structured output feature for guaranteed JSON responses.
-    - Implement automatic retry with exponential backoff for AI service calls.
+- **In-Memory Session Store** — ⚠️ Partially addressed, deliberately.
+  - Two of the three in-memory `Map`s (`pendingDeploys`, the sign-in handoff) were rewritten as short-lived signed JWTs, so they work correctly across separate serverless function instances (e.g. Vercel) with no shared memory needed.
+  - `portfolioStore` (the generated HTML/theme/data between "Generate" and "Deploy") remains in-memory — it's too large to fit in a token. This is a known, documented tradeoff (see README → "Deploying to Vercel"), not an oversight. Fixing it fully means external storage (e.g. Vercel KV), which was intentionally not added to keep the project database-free.
+- **Dead Code (`src/deploy.js`)** — ✅ Resolved. Populated, and further extended with `checkDeployTarget` (overwrite protection) and multi-portfolio project-site support.
+- **Gemini API & AI Resilience** — ⚠️ Partial.
+  - ✅ Model is configurable via `GEMINI_MODEL`.
+  - ✅ Structured JSON output (`responseMimeType: "application/json"`) is used for all structured generations.
+  - ❌ Still no automatic retry/backoff on Gemini API failures — a single transient error surfaces straight to the user.
 
 ---
 
-## 3. Frontend & User Experience (UX/UI)
+## 3. Frontend & User Experience (UX/UI) — ✅ Resolved
 
-- **Interactive Pre-Deployment Customization**
-  - Allow users to edit generated text, toggle color palettes, modify experience order, or upload project preview thumbnails before deploying.
-- **Multiple Portfolio Templates**
-  - Expand beyond the single layout template in `generator.js` to offer choices (e.g., *Minimalist*, *Creative*, *Developer-Focused*, *Executive*).
-- **Deployment Progress Feedback**
-  - Replace immediate server-side HTTP redirects with real-time UI progress indicators (e.g., "Authenticating with GitHub → Creating repository → Publishing to GitHub Pages").
-- **Accessibility & Custom Domains**
-  - Ensure generated HTML satisfies WCAG AA contrast standards.
-  - Provide guidance and UI controls for configuring custom domain names (`CNAME`) on GitHub Pages.
+- ✅ **Interactive Pre-Deployment Customization** — theme/color/title/favicon picker, plus an in-preview "Edit content" panel (name, tagline, about, CTA, skills, experience, projects) that re-renders instantly with no extra AI call.
+- ✅ **Multiple Portfolio Styles** — four layout modes (Minimalism, Glassmorphism, Brutalism, Playful).
+- ⚠️ **Deployment Progress Feedback** — generation has step-by-step progress; the deploy step itself is still a single OAuth redirect round-trip with no granular progress UI.
+- ✅ **Accessibility** — body text and the hero CTA button's text color are computed against the real WCAG contrast formula for whatever background/primary is in play, AI-picked or custom.
+- ❌ **Custom Domains** — no UI or guidance for configuring a `CNAME` on the deployed GitHub Pages site. Still open.
 
 ---
 
-## 4. Developer Experience & Quality Assurance
+## 4. Developer Experience & Quality Assurance — ⚠️ Partially resolved
 
-- **Automated Testing Suite**
-  - Add unit tests for resume extraction (`src/extract.js`), template generation (`src/generator.js`), and route integration tests using **Jest / Vitest** and **Supertest**.
-- **CLI Enhancement**
-  - Extend `index.js` CLI tool to support a `--deploy` flag and interactive prompts (`inquirer`), matching web feature parity.
-- **Docker & Containerization**
-  - Add a production `Dockerfile` and `docker-compose.yml` to simplify self-hosting and local development.
-- **Static Analysis & Tooling**
-  - Add ESLint, Prettier, and Husky pre-commit hooks to maintain code consistency across open-source contributions.
-- **CI/CD Workflows**
-  - Add `.github/workflows/ci.yml` for automated linting, dependency auditing, and test suites on Pull Requests.
+- ✅ **Automated Testing Suite** — 45+ tests via Node's built-in test runner (`node --test`), covering escaping/XSS, color and contrast logic, deploy repo resolution, profile-sync clamping, and endpoint contracts. (Jest/Vitest/Supertest were the original suggestion; the built-in runner was chosen instead to add zero new dependencies.)
+- ✅ **CI/CD** — GitHub Actions runs the full suite on every push/PR across Node 18/20/22.
+- ❌ **CLI Enhancement** (`--deploy` flag, interactive prompts) — still open; the CLI only builds `./dist/index.html` locally.
+- ❌ **Docker & Containerization** — still open.
+- ❌ **Static Analysis & Tooling** (ESLint, Prettier, Husky) — still open.
 
 ---
 
-## 5. Open Source Standards & Documentation
+## 5. Open Source Standards & Documentation — ❌ Still open
 
-- **Missing Legal & Community Files**
-  - [ ] Add `LICENSE` file (MIT License recommended).
-  - [ ] Add `CONTRIBUTING.md` with guidelines for pull requests, bug reporting, and setup.
-  - [ ] Add `CODE_OF_CONDUCT.md` (Contributor Covenant).
-  - [ ] Add `SECURITY.md` detailing vulnerability reporting procedures.
-  - [ ] Add GitHub Issue & PR templates (`.github/ISSUE_TEMPLATE/`).
-- **Package Metadata**
-  - Update `package.json` with repository URL, author info, keywords, homepage link, and appropriate license identifier.
+- [ ] `LICENSE` file (MIT recommended)
+- [ ] `CONTRIBUTING.md`
+- [ ] `CODE_OF_CONDUCT.md`
+- [ ] `SECURITY.md` (vulnerability reporting)
+- [ ] GitHub Issue & PR templates (`.github/ISSUE_TEMPLATE/`)
+- [ ] `package.json` metadata — repository URL, author, keywords, license identifier
 
----
-
-## 6. Integration of Specialized Design & Motion Engines (UI/UX Pro Max, GSAP, Lenis)
-
-To elevate generated portfolios from static templates to premium, interactive web applications, the generator incorporates three core design & animation skills:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                       PORTFOLIO GENERATION ENGINE                           │
-├─────────────────────────┬───────────────────────────┬───────────────────────┤
-│    UI/UX Pro Max        │          GSAP 3           │        Lenis          │
-│  (Design Intelligence)  │     (ScrollTrigger)       │  (Smooth Scrolling)   │
-├─────────────────────────┼───────────────────────────┼───────────────────────┤
-│ • HSL & RGB tokens      │ • Entrance timelines      │ • Inertia scroll RAF  │
-│ • Glassmorphism styles  │ • Scroll-driven reveals   │ • ScrollTrigger sync  │
-│ • Accessible contrast   │ • Staggered item entry    │ • Smooth anchor links │
-│ • Responsive scales     │ • Magnetic hover buttons  │ • Reduced motion honor│
-└─────────────────────────┴───────────────────────────┴───────────────────────┘
-```
-
-1. **UI/UX Pro Max (Design Intelligence System)**
-   - Dynamic design token variables (`--primary`, `--accent`, `--surface`, `--border`) derived from Gemini AI theme generation.
-   - Glassmorphic navigation headers with backdrop filters and progress tracking indicators.
-   - Responsive micro-interactions, custom scrollbar styling, and high-contrast light/dark mode pairings.
-
-2. **GSAP 3 & ScrollTrigger (Animation Engine)**
-   - **Hero Entrance:** Timeline-based staggered entrance sequence for hero text, tagline, and call-to-action buttons (`gsap.timeline`).
-   - **Scroll Reveals:** Intersection-aware scroll-triggered element reveals (`ScrollTrigger`) for experience timelines and project cards.
-   - **Interactive Physics:** Magnetic button hover response using `gsap.quickTo` for smooth mouse tracking.
-   - **Accessibility:** Automatic detection of `prefers-reduced-motion` to immediately reveal content without animation for sensitive users.
-
-3. **Lenis Smooth Scroll (Inertia Scroll Engine)**
-   - Silky smooth wheel scrolling powered by `Lenis` requestAnimationFrame (`raf`) tied directly to GSAP's ticker (`gsap.ticker.add`).
-   - Frictionless anchor navigation (`#about`, `#projects`, etc.) smoothly scrolling to targets with offset padding.
+None of this affects functionality or security; it's purely what's expected of a repo that wants outside contributors. Worth doing before actively promoting the project as a public/open-source resource.
 
 ---
 
-## Roadmap & Implementation Phases
+## What Shipped Beyond the Original Scope
 
-```mermaid
-flowchart TD
-    Phase1["Phase 1: Security & Motion Engine<br/>• Fix OAuth CSRF & Scopes<br/>• Add Rate Limiting & XSS Guards<br/>• Integrated GSAP 3 & Lenis Smooth Scroll<br/>• Applied UI/UX Pro Max Design Tokens"]
-    Phase2["Phase 2: Code Quality & Testing<br/>• Add Vitest / Supertest<br/>• Add ESLint & Prettier<br/>• Setup GitHub Actions CI"]
-    Phase3["Phase 3: UX & Customization<br/>• Structured Gemini Output<br/>• Interactive Editor Preview<br/>• Multi-Template Engine"]
-    Phase4["Phase 4: Open Source Release<br/>• Add License & Guidelines<br/>• Docker Containerization<br/>• Community Governance"]
+A few things weren't in the original blueprint at all:
 
-    Phase1 --> Phase2 --> Phase3 --> Phase4
-```
-\
+- **Multi-portfolio deploys** — a named project deploys as a separate `username.github.io/project-name` site instead of overwriting the main profile, with a "My Portfolios" list tracking every one.
+- **Overwrite protection** — deploying now detects and pauses on unrelated existing content at the target repo instead of silently overwriting it.
+- **Resume Review tab** — ATS score plus grounded strengths/weaknesses/suggestions, independent of the cover-letter flow.
+- **Paste-resume-text** as an alternative to file upload.
+- **Save as PDF** — a dedicated print stylesheet and button on every generated portfolio.
+- **Optional cross-device sync** — "Sign in with GitHub" backs up the resume summary, portfolio list, and cover-letter history to a secret Gist in the user's own account. No server-side database; the Gist *is* the store.
+- **Vercel serverless deployment support** — `api/index.js` + `vercel.json`, with the tmpdir/stateless-JWT fixes described in §2.
+
 ---
 
-## Recommended Action Plan
+## Recommended Next Steps
 
-1. **Immediate (Security & Bugs):** Add rate limiting, narrow GitHub OAuth scope to `public_repo`, sanitize HTML output against XSS, and populate `src/deploy.js`.
-2. **Short Term (DX & Testing):** Add `LICENSE`, setup unit testing with `vitest`, and configure GitHub Actions CI.
-3. **Medium Term (Feature Expansion):** Support multiple design themes and interactive preview adjustments prior to deployment.
-
+1. **If open-sourcing publicly**: add `LICENSE`, `CONTRIBUTING.md`, and the other §5 items — this is the only fully-open category left.
+2. **If traffic grows**: revisit the `portfolioStore` in-memory tradeoff from §2 with real external storage.
+3. **Nice-to-haves, no urgency**: Gemini retry/backoff, deploy-step progress UI, Docker, lint tooling, CNAME guidance.
