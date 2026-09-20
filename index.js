@@ -68,14 +68,13 @@ async function run(resumePath, cmdOptions) {
     process.exit(1);
   }
 
-  // Parse colors from CLI argument (e.g. "#7c6aff,#4f46e5,#00e5cc,#080810")
+  // Parse colors from CLI argument (e.g. "#7c6aff,#00e5cc,#080810")
   let colors = {};
   if (cmdOptions.colors) {
     const parts = cmdOptions.colors.split(",").map(c => c.trim());
     if (parts[0]) colors.primary = parts[0];
-    if (parts[1]) colors.secondary = parts[1];
-    if (parts[2]) colors.accent = parts[2];
-    if (parts[3]) colors.background = parts[3];
+    if (parts[1]) colors.accent = parts[1];
+    if (parts[2]) colors.background = parts[2];
   }
 
   const htmlOptions = {
@@ -122,7 +121,7 @@ program
   .option("-s, --style <style>", "UI Style (minimalism, glassmorphism, brutalism, playful)", "minimalism")
   .option("-t, --title <title>", "Custom webpage title")
   .option("-f, --favicon <favicon>", "Custom favicon (Emoji or URL)")
-  .option("-c, --colors <colors>", "Comma-separated custom colors (primary,secondary,accent,background)")
+  .option("-c, --colors <colors>", "Comma-separated custom colors (primary,accent,background)")
   .action(run);
 
 program.parse();

@@ -98,6 +98,36 @@
         letter-spacing: 0.05em;
       }
 
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+      }
+
+      .menu-link {
+        font-family: var(--font);
+        font-size: 0.85rem;
+        color: var(--textLight);
+        text-decoration: none;
+        cursor: pointer;
+        transition: color 0.2s;
+        background: none;
+        border: none;
+      }
+
+      .menu-link:hover {
+        color: var(--text);
+      }
+
+      @media (max-width: 640px) {
+        .nav-links {
+          gap: 1rem;
+        }
+        .menu-link {
+          font-size: 0.75rem;
+        }
+      }
+
       /* ── Hero ── */
       .hero {
         min-height: 100vh;
@@ -455,6 +485,185 @@
         display: block;
       }
 
+      /* ── Customize Panel ── */
+      .customize-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        margin-top: 1.25rem;
+        padding: 0.65rem 0.9rem;
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        color: var(--textMid);
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        cursor: pointer;
+        transition: border-color 0.2s, color 0.2s;
+      }
+
+      .customize-toggle:hover {
+        border-color: var(--primary);
+        color: var(--text);
+      }
+
+      .customize-toggle .chevron {
+        transition: transform 0.2s;
+        flex-shrink: 0;
+      }
+
+      .customize-toggle.open .chevron {
+        transform: rotate(180deg);
+      }
+
+      .customize-panel {
+        display: none;
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border);
+        text-align: left;
+      }
+
+      .customize-panel.visible {
+        display: block;
+      }
+
+      .field-label {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        color: var(--textLight);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.6rem;
+        display: block;
+      }
+
+      .theme-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
+        margin-bottom: 1.35rem;
+      }
+
+      .theme-option {
+        padding: 0.7rem 0.85rem;
+        background: var(--bg);
+        border: 1.5px solid var(--border2);
+        border-radius: 8px;
+        color: var(--textMid);
+        font-family: var(--font);
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.2s;
+      }
+
+      .theme-option .theme-desc {
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 400;
+        color: var(--textLight);
+        margin-top: 0.2rem;
+        font-family: var(--mono);
+      }
+
+      .theme-option:hover {
+        border-color: var(--primary);
+      }
+
+      .theme-option.active {
+        border-color: var(--primary);
+        background: var(--glow);
+        color: var(--text);
+      }
+
+      .color-toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 1rem;
+        font-size: 0.82rem;
+        color: var(--textMid);
+      }
+
+      .color-toggle-row input[type="checkbox"] {
+        width: 15px;
+        height: 15px;
+        accent-color: var(--primary);
+        cursor: pointer;
+      }
+
+      .color-toggle-row label {
+        cursor: pointer;
+      }
+
+      .color-fields {
+        display: none;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.35rem;
+      }
+
+      .color-fields.visible {
+        display: grid;
+      }
+
+      .color-field {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .color-field input[type="color"] {
+        width: 100%;
+        height: 38px;
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        background: var(--bg);
+        cursor: pointer;
+        padding: 2px;
+      }
+
+      .color-field label {
+        font-size: 0.68rem;
+        color: var(--textLight);
+        font-family: var(--mono);
+      }
+
+      .text-field {
+        margin-bottom: 1.1rem;
+      }
+
+      .text-field:last-child {
+        margin-bottom: 0;
+      }
+
+      .text-input {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        background: var(--bg);
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 0.85rem;
+      }
+
+      .text-input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+
+      @media (max-width: 480px) {
+        .theme-grid,
+        .color-fields.visible {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
       /* ── How it works ── */
       .how-section {
         padding: 6rem 2rem;
@@ -602,6 +811,79 @@
 .success-banner a { color: #58a6ff; text-decoration: underline; }
 .success-banner .success-title { color: #3fb950; font-weight: 700; margin-bottom: 0.35rem; }
 
+/* Overwrite-confirmation dialog */
+.confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(8, 8, 16, 0.85);
+  backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.confirm-overlay.visible { display: flex; }
+
+.confirm-card {
+  max-width: 440px;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid #d29922;
+  border-radius: 12px;
+  padding: 1.75rem;
+  text-align: left;
+}
+
+.confirm-card .confirm-title {
+  color: #d29922;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.confirm-card .confirm-body {
+  font-size: 0.85rem;
+  color: var(--textMid);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.confirm-card .confirm-body strong { color: var(--text); }
+
+.confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.confirm-actions a {
+  flex: 1;
+  text-align: center;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.confirm-actions a:hover { opacity: 0.85; }
+
+.confirm-cancel {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border2);
+}
+
+.confirm-overwrite {
+  background: #d29922;
+  color: #1a1400;
+}
+
       .btn-download {
         display: flex;
         align-items: center;
@@ -678,6 +960,117 @@
         color: var(--accent);
       }
 
+      .deploy-repo-field {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .deploy-repo-field input {
+        padding: 0.4rem 0.6rem;
+        background: var(--bg);
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        width: 200px;
+      }
+
+      .deploy-repo-field input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+
+      /* ── Edit content panel (inside preview modal) ── */
+      .btn-edit {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.25rem;
+        background: var(--surface);
+        color: var(--textMid);
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        font-family: var(--font);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-edit:hover {
+        color: var(--text);
+        border-color: var(--primary);
+      }
+
+      .btn-edit.active {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+
+      .edit-panel {
+        display: none;
+        flex-shrink: 0;
+        max-height: 46vh;
+        overflow-y: auto;
+        padding: 1.25rem;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        text-align: left;
+      }
+
+      .edit-panel.visible {
+        display: block;
+      }
+
+      .edit-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+      }
+
+      .edit-list-item {
+        background: var(--bg);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        padding: 0.85rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .edit-list-item .edit-grid-2 {
+        margin-bottom: 0.6rem;
+      }
+
+      .edit-list-item .edit-grid-2:last-child,
+      .edit-list-item .text-field:last-child {
+        margin-bottom: 0;
+      }
+
+      .apply-edits-btn {
+        margin-top: 0.5rem;
+      }
+
+      .edit-status {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--accent);
+        margin-top: 0.6rem;
+        display: none;
+      }
+
+      .edit-status.visible {
+        display: block;
+      }
+
+      @media (max-width: 640px) {
+        .edit-grid-2 {
+          grid-template-columns: 1fr;
+        }
+      }
+
       /* ── Footer ── */
       footer {
         padding: 2rem 2.5rem;
@@ -743,6 +1136,12 @@
     <!-- Nav -->
     <nav>
       <div class="nav-logo">Portfol<span>.</span>io</div>
+      <div class="nav-links">
+        <a class="menu-link active" data-target="portfolio-section" style="color: var(--text); font-weight: bold;">Portfolio</a>
+        <a class="menu-link" data-target="cover-letter-section">Cover Letter</a>
+        <a class="menu-link" data-target="resume-review-section">Resume Review</a>
+        <a class="menu-link" data-target="profile-section">Profile</a>
+      </div>
       <div class="nav-badge">AI-powered ✦ Free</div>
     </nav>
 
@@ -821,6 +1220,14 @@
               </button>
             </div>
 
+            <div id="pasteTextWrap" style="display: none; margin-top: 0.75rem;">
+              <textarea id="resumeTextInput" placeholder="Paste your resume text here (e.g. copied from LinkedIn or a Google Doc)..." style="width: 100%; min-height: 160px; padding: 0.75rem; background: var(--bg); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 0.85rem; font-family: var(--font); resize: vertical; line-height: 1.6;"></textarea>
+            </div>
+
+            <div style="text-align: center; margin-top: 0.75rem;">
+              <button type="button" id="togglePasteMode" style="background: none; border: none; color: var(--textLight); font-size: 0.75rem; font-family: var(--mono); cursor: pointer; text-decoration: underline;">Or paste resume text instead</button>
+            </div>
+
             <div class="progress-wrap" id="progressWrap">
               <div class="progress-steps">
                 <div class="progress-step" id="step1">
@@ -843,6 +1250,61 @@
                   <div class="step-spinner"></div>
                   <span>Building site</span>
                 </div>
+              </div>
+            </div>
+
+            <button type="button" class="customize-toggle" id="customizeToggle">
+              <span>🎨 Customize theme, colors &amp; branding</span>
+              <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
+            </button>
+
+            <div class="customize-panel" id="customizePanel">
+              <label class="field-label">Theme</label>
+              <div class="theme-grid" id="themeGrid">
+                <button type="button" class="theme-option active" data-style="minimalism">
+                  Minimalism
+                  <span class="theme-desc">Clean, sharp corners</span>
+                </button>
+                <button type="button" class="theme-option" data-style="glassmorphism">
+                  Glassmorphism
+                  <span class="theme-desc">Frosted glass blur</span>
+                </button>
+                <button type="button" class="theme-option" data-style="brutalism">
+                  Brutalism
+                  <span class="theme-desc">Bold borders &amp; shadows</span>
+                </button>
+                <button type="button" class="theme-option" data-style="playful">
+                  Playful
+                  <span class="theme-desc">Rounded &amp; bouncy</span>
+                </button>
+              </div>
+
+              <div class="color-toggle-row">
+                <input type="checkbox" id="useCustomColors" />
+                <label for="useCustomColors">Pick my own colors (otherwise AI chooses a palette)</label>
+              </div>
+              <div class="color-fields" id="colorFields">
+                <div class="color-field">
+                  <input type="color" id="colorPrimary" value="#7c6aff" />
+                  <label>Primary</label>
+                </div>
+                <div class="color-field">
+                  <input type="color" id="colorAccent" value="#00e5cc" />
+                  <label>Accent</label>
+                </div>
+                <div class="color-field">
+                  <input type="color" id="colorBackground" value="#080810" />
+                  <label>Background</label>
+                </div>
+              </div>
+
+              <div class="text-field">
+                <label class="field-label" for="customTitle">Page title (optional)</label>
+                <input type="text" id="customTitle" class="text-input" maxlength="100" placeholder="Defaults to your name" />
+              </div>
+              <div class="text-field">
+                <label class="field-label" for="customFavicon">Favicon — emoji or image URL (optional)</label>
+                <input type="text" id="customFavicon" class="text-input" maxlength="300" placeholder="✦" />
               </div>
             </div>
 
@@ -889,8 +1351,8 @@
           <div class="step-number">03 /</div>
           <div class="step-title">Deploy in one click</div>
           <div class="step-desc">
-            Download your portfolio as a single HTML file and host it free on
-            GitHub Pages.
+            One click publishes straight to GitHub Pages — or download the
+            single static HTML file and host it anywhere for free.
           </div>
         </div>
       </div>
@@ -953,7 +1415,79 @@
                 </div>
                 <div id="clTextOutput" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; color: var(--textMid); font-size: 0.88rem; line-height: 1.7; white-space: pre-wrap; font-family: var(--font); max-height: 400px; overflow-y: auto;"></div>
               </div>
-              
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Tab: Resume Review Section -->
+    <div id="resume-review-section" class="tab-content" style="display: none;">
+      <section class="hero" style="min-height: auto; padding: 6rem 2rem 5rem;">
+        <div class="hero-content" style="max-width: 800px; margin: 0 auto;">
+          <div class="hero-eyebrow" style="display: inline-flex; align-items: center; gap: 0.5rem;">ATS &amp; Recruiter-Eye Feedback</div>
+          <h1 class="hero-title" style="font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1; margin-bottom: 1.5rem;">
+            Resume Review<span>.</span>
+          </h1>
+          <p class="hero-sub" style="margin-bottom: 3rem;">
+            Get an honest ATS score plus specific strengths, weaknesses, and fixes for the resume you already uploaded — no job description needed.
+          </p>
+
+          <div class="upload-wrapper" style="max-width: 680px;">
+            <div class="upload-card" style="padding: 2.5rem 2rem;">
+
+              <!-- Warning if no resume has been uploaded yet -->
+              <div id="rrResumeWarning" style="padding: 1rem; background: rgba(255, 165, 0, 0.08); border: 1px solid rgba(255, 165, 0, 0.25); border-radius: 8px; font-size: 0.82rem; color: #ffb84d; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-family: var(--mono);">
+                <span>⚠️ Note: Please upload your resume in the **Portfolio** tab first to enable review.</span>
+              </div>
+
+              <button class="generate-btn" id="generateRRBtn" disabled style="width: 100%;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                Review My Resume
+              </button>
+
+              <div class="progress-wrap" id="rrProgressWrap" style="margin-top: 1.5rem; display: none;">
+                <div class="progress-steps">
+                  <div class="progress-step" id="rrStep1">
+                    <div class="step-dot"></div>
+                    <div class="step-spinner"></div>
+                    <span>Reading resume like a recruiter would</span>
+                  </div>
+                  <div class="progress-step" id="rrStep2">
+                    <div class="step-dot"></div>
+                    <div class="step-spinner"></div>
+                    <span>Scoring ATS compatibility</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Resume Review Output -->
+              <div id="rrOutputCard" style="display: none; margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 2rem; text-align: left;">
+                <div style="display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1.5rem;">
+                  <div id="rrScoreCircle" style="flex-shrink: 0; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: bold; font-size: 1.1rem; border: 3px solid var(--border2);">—</div>
+                  <div>
+                    <div style="font-size: 0.65rem; color: var(--textLight); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">ATS Score</div>
+                    <div id="rrSummary" style="font-size: 0.85rem; color: var(--textMid); line-height: 1.5;"></div>
+                  </div>
+                </div>
+
+                <div style="display: grid; gap: 1.25rem;">
+                  <div>
+                    <h4 style="font-size: 0.78rem; font-weight: 700; color: #3fb950; margin-bottom: 0.5rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em;">✓ Strengths</h4>
+                    <ul id="rrStrengths" style="padding-left: 1.1rem; color: var(--textMid); font-size: 0.85rem; line-height: 1.7;"></ul>
+                  </div>
+                  <div>
+                    <h4 style="font-size: 0.78rem; font-weight: 700; color: #ffb84d; margin-bottom: 0.5rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em;">⚠ Weaknesses</h4>
+                    <ul id="rrWeaknesses" style="padding-left: 1.1rem; color: var(--textMid); font-size: 0.85rem; line-height: 1.7;"></ul>
+                  </div>
+                  <div>
+                    <h4 style="font-size: 0.78rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em;">→ Suggestions</h4>
+                    <ul id="rrSuggestions" style="padding-left: 1.1rem; color: var(--textMid); font-size: 0.85rem; line-height: 1.7;"></ul>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -965,19 +1499,31 @@
       <section class="hero" style="min-height: auto; padding: 6rem 2rem 5rem;">
         <div class="hero-content" style="max-width: 900px; text-align: left; width: 100%; margin: 0 auto;">
           <div class="hero-eyebrow" style="text-align: center;">My Dashboard</div>
-          <h1 class="hero-title" style="font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 2.5rem; text-align: center; line-height: 1;">
+          <h1 class="hero-title" style="font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 2rem; text-align: center; line-height: 1;">
             Candidate Profile<span>.</span>
           </h1>
+
+          <div class="step-card" id="syncCard" style="padding: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="font-size: 0.65rem; color: var(--primary); font-family: var(--mono); margin-bottom: 0.35rem; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em;">Sync across devices</div>
+              <div id="syncSignedOutText" style="font-size: 0.82rem; color: var(--textLight); max-width: 480px;">Sign in with GitHub to back this profile up and restore it on another device — stored as a secret Gist in your own GitHub account, no database on our end.</div>
+              <div id="syncSignedInText" style="display: none; font-size: 0.82rem; color: var(--textMid);">Signed in as <strong id="syncUsername" style="color: var(--text);">—</strong>. Changes sync automatically.</div>
+            </div>
+            <div style="display: flex; gap: 0.6rem; flex-shrink: 0;">
+              <button type="button" class="btn-download" id="signInBtn" style="padding: 0.55rem 1.1rem; font-size: 0.78rem;">Sign in with GitHub</button>
+              <button type="button" class="btn-close" id="signOutBtn" style="display: none; padding: 0.55rem 1.1rem; font-size: 0.78rem;">Sign out</button>
+            </div>
+          </div>
 
           <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: start;" class="profile-grid">
             <!-- Sidebar info: Portfolio and Resume Summary -->
             <div style="display: flex; flex-direction: column; gap: 1.5rem;">
               
-              <!-- Portfolio link status -->
+              <!-- My Portfolios (one per deploy — main profile + any named projects) -->
               <div class="step-card" style="padding: 1.5rem;">
-                <div style="font-size: 0.65rem; color: var(--primary); font-family: var(--mono); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em;">My Portfolio</div>
-                <div id="profPortfolioLink" style="font-size: 0.85rem; font-weight: bold; word-break: break-all; margin-bottom: 0.75rem; color: var(--text);">Not deployed yet.</div>
-                <a id="profPortfolioBtn" href="#" target="_blank" style="display: none; width: 100%; text-align: center; padding: 0.5rem; background: var(--primary); color: white; border-radius: 6px; font-size: 0.75rem; font-weight: bold; transition: opacity 0.2s; text-decoration: none;">Open Portfolio</a>
+                <div style="font-size: 0.65rem; color: var(--primary); font-family: var(--mono); margin-bottom: 0.75rem; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em;">My Portfolios</div>
+                <div id="profPortfoliosEmpty" style="font-size: 0.82rem; color: var(--textLight);">Not deployed yet. Start in the Portfolio tab.</div>
+                <div id="profPortfoliosList" style="display: flex; flex-direction: column; gap: 0.6rem;"></div>
               </div>
 
               <!-- Latest Resume Status -->
@@ -1027,6 +1573,10 @@
           Portfolio for <span id="modalName">—</span>
         </div>
         <div class="modal-actions">
+          <button class="btn-edit" id="editContentBtn" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+            Edit content
+          </button>
           <button class="btn-deploy" id="deployBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/>
@@ -1052,15 +1602,57 @@
           <button class="btn-close" id="closeModal">✕ Close</button>
         </div>
       </div>
+
+      <div class="edit-panel" id="editPanel">
+        <div class="edit-grid-2" style="margin-bottom: 0.85rem;">
+          <div class="text-field" style="margin-bottom: 0;">
+            <label class="field-label" for="editName">Name</label>
+            <input type="text" id="editName" class="text-input" maxlength="150" />
+          </div>
+          <div class="text-field" style="margin-bottom: 0;">
+            <label class="field-label" for="editTagline">Tagline</label>
+            <input type="text" id="editTagline" class="text-input" maxlength="200" />
+          </div>
+        </div>
+        <div class="text-field">
+          <label class="field-label" for="editAbout">About</label>
+          <textarea id="editAbout" class="text-input" rows="3" maxlength="2000"></textarea>
+        </div>
+        <div class="text-field">
+          <label class="field-label" for="editCta">Contact call-to-action</label>
+          <input type="text" id="editCta" class="text-input" maxlength="200" />
+        </div>
+        <div class="text-field">
+          <label class="field-label" for="editSkills">Skills (comma-separated)</label>
+          <input type="text" id="editSkills" class="text-input" />
+        </div>
+
+        <label class="field-label" style="margin-top: 0.5rem;">Experience</label>
+        <div id="editExperienceList"></div>
+
+        <label class="field-label" style="margin-top: 0.5rem;">Projects</label>
+        <div id="editProjectsList"></div>
+
+        <button type="button" class="generate-btn apply-edits-btn" id="applyEditsBtn">Apply changes to preview</button>
+        <div class="edit-status" id="editStatus">✓ Preview updated</div>
+      </div>
+
       <div class="modal-frame-wrap">
         <iframe id="previewFrame" title="Portfolio Preview"></iframe>
       </div>
       <div class="deploy-hint">
         <strong>Deploy free →</strong>
         <span
-          >Create a repo named <strong>username.github.io</strong> on GitHub,
-          push the HTML file, enable GitHub Pages — live in 60 seconds.</span
+          >Click <strong>Deploy to GitHub Pages</strong> above to publish automatically with
+          one click, or hit <strong>Download HTML</strong> and drag the file into Vercel,
+          Netlify, or any static host — it's a single self-contained file with no backend
+          required.</span
         >
+      </div>
+      <div class="deploy-hint deploy-repo-field">
+        <strong>Multiple portfolios?</strong>
+        <span>Leave blank to deploy your main profile, or name a project to keep them separate:</span>
+        <input type="text" id="deployRepoSlug" placeholder="e.g. side-project" maxlength="90" />
       </div>
     </div>
 
@@ -1081,6 +1673,32 @@
 
       let selectedFile = null;
       let generatedHTML = "";
+      let currentPortfolioData = null;
+      let lastGenerateOptions = { style: "minimalism", title: "", favicon: "", colors: null };
+
+      // ── Customize panel: theme / colors / title / favicon ──
+      let activeStyle = "minimalism";
+
+      const customizeToggle = document.getElementById("customizeToggle");
+      const customizePanel = document.getElementById("customizePanel");
+      customizeToggle.addEventListener("click", () => {
+        customizeToggle.classList.toggle("open");
+        customizePanel.classList.toggle("visible");
+      });
+
+      document.querySelectorAll(".theme-option").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".theme-option").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          activeStyle = btn.dataset.style;
+        });
+      });
+
+      const useCustomColors = document.getElementById("useCustomColors");
+      const colorFields = document.getElementById("colorFields");
+      useCustomColors.addEventListener("change", () => {
+        colorFields.classList.toggle("visible", useCustomColors.checked);
+      });
 
       // ── File selection ──
       fileInput.addEventListener("change", (e) => {
@@ -1091,16 +1709,39 @@
         selectedFile = file;
         fileName.textContent = file.name;
         fileSelected.classList.add("visible");
-        generateBtn.disabled = false;
         errorBox.classList.remove("visible");
+        updateGenerateBtnState();
       }
 
       fileRemove.addEventListener("click", () => {
         selectedFile = null;
         fileInput.value = "";
         fileSelected.classList.remove("visible");
-        generateBtn.disabled = true;
+        updateGenerateBtnState();
       });
+
+      // ── Paste-text mode: an alternative to uploading a PDF/DOCX ──
+      let inputMode = "file";
+      const togglePasteMode = document.getElementById("togglePasteMode");
+      const pasteTextWrap = document.getElementById("pasteTextWrap");
+      const resumeTextInput = document.getElementById("resumeTextInput");
+
+      function updateGenerateBtnState() {
+        generateBtn.disabled = inputMode === "file" ? !selectedFile : !resumeTextInput.value.trim();
+      }
+
+      togglePasteMode.addEventListener("click", () => {
+        inputMode = inputMode === "file" ? "paste" : "file";
+        const isPaste = inputMode === "paste";
+        dropZone.style.display = isPaste ? "none" : "";
+        fileSelected.classList.toggle("visible", !isPaste && !!selectedFile);
+        pasteTextWrap.style.display = isPaste ? "block" : "none";
+        togglePasteMode.textContent = isPaste ? "Or upload a file instead" : "Or paste resume text instead";
+        errorBox.classList.remove("visible");
+        updateGenerateBtnState();
+      });
+
+      resumeTextInput.addEventListener("input", updateGenerateBtnState);
 
       // ── Drag and drop ──
       dropZone.addEventListener("dragover", (e) => {
@@ -1133,7 +1774,8 @@
 
       // ── Generate ──
       generateBtn.addEventListener("click", async () => {
-        if (!selectedFile) return;
+        if (inputMode === "file" && !selectedFile) return;
+        if (inputMode === "paste" && !resumeTextInput.value.trim()) return;
 
         generateBtn.disabled = true;
         progressWrap.classList.add("visible");
@@ -1141,20 +1783,32 @@
         generatedHTML = "";
 
         const formData = new FormData();
-        formData.append("resume", selectedFile);
-        
+        if (inputMode === "file") {
+          formData.append("resume", selectedFile);
+        } else {
+          formData.append("resumeText", resumeTextInput.value.trim());
+        }
+
         // Append customizations
-        formData.append("style", activeStyle);
-        formData.append("title", document.getElementById("customTitle").value.trim());
-        formData.append("favicon", document.getElementById("customFavicon").value.trim());
-        
-        const colors = {
-          primary: document.getElementById("colorPrimary").value,
-          secondary: document.getElementById("colorSecondary").value,
-          accent: document.getElementById("colorAccent").value,
-          background: document.getElementById("colorBackground").value,
+        lastGenerateOptions = {
+          style: activeStyle,
+          title: document.getElementById("customTitle").value.trim(),
+          favicon: document.getElementById("customFavicon").value.trim(),
+          colors: useCustomColors.checked
+            ? {
+                primary: document.getElementById("colorPrimary").value,
+                accent: document.getElementById("colorAccent").value,
+                background: document.getElementById("colorBackground").value,
+              }
+            : null,
         };
-        formData.append("colors", JSON.stringify(colors));
+
+        formData.append("style", lastGenerateOptions.style);
+        formData.append("title", lastGenerateOptions.title);
+        formData.append("favicon", lastGenerateOptions.favicon);
+        if (lastGenerateOptions.colors) {
+          formData.append("colors", JSON.stringify(lastGenerateOptions.colors));
+        }
 
         try {
           setStep(0);
@@ -1183,6 +1837,7 @@
           });
 
           generatedHTML = data.html;
+          currentPortfolioData = data.portfolioData || null;
 
           // Save latest resume details to local storage
           if (data.portfolioData) {
@@ -1223,6 +1878,12 @@
         modalName.textContent = name;
         previewFrame.srcdoc = html;
         modal.classList.add("visible");
+
+        // Reset the edit panel to closed/fresh for this preview
+        editPanel.classList.remove("visible");
+        editContentBtn.classList.remove("active");
+        editStatus.classList.remove("visible");
+        if (currentPortfolioData) renderEditPanel(currentPortfolioData);
       }
 
       // ── Download ──
@@ -1248,9 +1909,160 @@
       });
 
       // ── Deploy button ──
+      const REPO_SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,89}$/;
       document.getElementById('deployBtn').addEventListener('click', () => {
         if (!currentSessionId) return;
-        window.location.href = `/auth/github?sessionId=${currentSessionId}`;
+        const slug = document.getElementById('deployRepoSlug').value.trim();
+        if (slug && !REPO_SLUG_RE.test(slug)) {
+          alert('That project name isn\'t valid for a GitHub repo. Use only letters, numbers, dots, hyphens, or underscores.');
+          return;
+        }
+        const repoParam = slug ? `&repo=${encodeURIComponent(slug)}` : '';
+        window.location.href = `/auth/github?sessionId=${encodeURIComponent(currentSessionId)}${repoParam}`;
+      });
+
+      // ── Edit content panel ──
+      const editContentBtn = document.getElementById("editContentBtn");
+      const editPanel = document.getElementById("editPanel");
+      const editStatus = document.getElementById("editStatus");
+      const editExperienceList = document.getElementById("editExperienceList");
+      const editProjectsList = document.getElementById("editProjectsList");
+
+      editContentBtn.addEventListener("click", () => {
+        editPanel.classList.toggle("visible");
+        editContentBtn.classList.toggle("active");
+      });
+
+      function renderEditPanel(pd) {
+        document.getElementById("editName").value = pd.name || "";
+        document.getElementById("editTagline").value = pd.tagline || "";
+        document.getElementById("editAbout").value = pd.about || "";
+        document.getElementById("editCta").value = pd.cta || "";
+        document.getElementById("editSkills").value = (pd.skills || []).join(", ");
+
+        editExperienceList.innerHTML = "";
+        (pd.experience || []).forEach((exp, i) => {
+          const item = document.createElement("div");
+          item.className = "edit-list-item";
+          item.dataset.index = i;
+          item.innerHTML = `
+            <div class="edit-grid-2">
+              <div class="text-field" style="margin-bottom: 0;">
+                <label class="field-label">Company</label>
+                <input type="text" class="text-input exp-company" maxlength="150" value="${escapeHTML(exp.company || "")}" />
+              </div>
+              <div class="text-field" style="margin-bottom: 0;">
+                <label class="field-label">Role</label>
+                <input type="text" class="text-input exp-role" maxlength="150" value="${escapeHTML(exp.role || "")}" />
+              </div>
+            </div>
+            <div class="text-field">
+              <label class="field-label">Period</label>
+              <input type="text" class="text-input exp-period" maxlength="100" value="${escapeHTML(exp.period || "")}" />
+            </div>
+            <div class="text-field">
+              <label class="field-label">Highlight</label>
+              <textarea class="text-input exp-highlight" rows="2" maxlength="400">${escapeHTML(exp.highlight || "")}</textarea>
+            </div>
+          `;
+          editExperienceList.appendChild(item);
+        });
+
+        editProjectsList.innerHTML = "";
+        (pd.projects || []).forEach((proj, i) => {
+          const item = document.createElement("div");
+          item.className = "edit-list-item";
+          item.dataset.index = i;
+          item.innerHTML = `
+            <div class="text-field">
+              <label class="field-label">Title</label>
+              <input type="text" class="text-input proj-title" maxlength="150" value="${escapeHTML(proj.title || "")}" />
+            </div>
+            <div class="text-field">
+              <label class="field-label">Description</label>
+              <textarea class="text-input proj-description" rows="2" maxlength="500">${escapeHTML(proj.description || "")}</textarea>
+            </div>
+            <div class="edit-grid-2">
+              <div class="text-field" style="margin-bottom: 0;">
+                <label class="field-label">Tags (comma-separated)</label>
+                <input type="text" class="text-input proj-tags" value="${escapeHTML((proj.tags || []).join(", "))}" />
+              </div>
+              <div class="text-field" style="margin-bottom: 0;">
+                <label class="field-label">URL</label>
+                <input type="text" class="text-input proj-url" maxlength="500" value="${escapeHTML(proj.url || "")}" />
+              </div>
+            </div>
+          `;
+          editProjectsList.appendChild(item);
+        });
+      }
+
+      function collectEditedPortfolioData() {
+        const splitList = (val) => val.split(",").map((s) => s.trim()).filter(Boolean);
+
+        const experience = [...editExperienceList.querySelectorAll(".edit-list-item")].map((item) => ({
+          company: item.querySelector(".exp-company").value.trim(),
+          role: item.querySelector(".exp-role").value.trim(),
+          period: item.querySelector(".exp-period").value.trim(),
+          highlight: item.querySelector(".exp-highlight").value.trim(),
+        }));
+
+        const projects = [...editProjectsList.querySelectorAll(".edit-list-item")].map((item) => ({
+          title: item.querySelector(".proj-title").value.trim(),
+          description: item.querySelector(".proj-description").value.trim(),
+          tags: splitList(item.querySelector(".proj-tags").value),
+          url: item.querySelector(".proj-url").value.trim() || null,
+        }));
+
+        return {
+          name: document.getElementById("editName").value.trim(),
+          tagline: document.getElementById("editTagline").value.trim(),
+          about: document.getElementById("editAbout").value.trim(),
+          cta: document.getElementById("editCta").value.trim(),
+          skills: splitList(document.getElementById("editSkills").value),
+          experience,
+          projects,
+        };
+      }
+
+      document.getElementById("applyEditsBtn").addEventListener("click", async () => {
+        if (!currentSessionId) return;
+        const applyBtn = document.getElementById("applyEditsBtn");
+        applyBtn.disabled = true;
+        editStatus.classList.remove("visible");
+
+        try {
+          const edited = collectEditedPortfolioData();
+          const payload = {
+            sessionId: currentSessionId,
+            portfolioData: edited,
+            style: lastGenerateOptions.style,
+            title: lastGenerateOptions.title,
+            favicon: lastGenerateOptions.favicon,
+          };
+          if (lastGenerateOptions.colors) payload.colors = lastGenerateOptions.colors;
+
+          const res = await fetch("/regenerate-html", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed to update preview.");
+
+          generatedHTML = data.html;
+          previewFrame.srcdoc = data.html;
+          modalName.textContent = data.name;
+          currentPortfolioData = { ...currentPortfolioData, ...edited };
+
+          editStatus.classList.add("visible");
+          setTimeout(() => editStatus.classList.remove("visible"), 3000);
+        } catch (err) {
+          alert("Couldn't apply changes: " + err.message);
+        } finally {
+          applyBtn.disabled = false;
+        }
       });
 
       // ── Cover Letter generator ──
@@ -1265,13 +2077,19 @@
       function checkResumeState() {
         const resume = JSON.parse(localStorage.getItem("latest_resume"));
         const clResumeWarning = document.getElementById("clResumeWarning");
+        const rrResumeWarning = document.getElementById("rrResumeWarning");
+        const generateRRBtn = document.getElementById("generateRRBtn");
 
         if (resume && resume.resumeText) {
           clResumeWarning.style.display = "none";
           generateCLBtn.disabled = !jobDescriptionInput.value.trim();
+          rrResumeWarning.style.display = "none";
+          generateRRBtn.disabled = false;
         } else {
           clResumeWarning.style.display = "flex";
           generateCLBtn.disabled = true;
+          rrResumeWarning.style.display = "flex";
+          generateRRBtn.disabled = true;
         }
       }
 
@@ -1360,8 +2178,84 @@
         URL.revokeObjectURL(url);
       });
 
+      // ── Resume Review generator ──
+      const generateRRBtn = document.getElementById("generateRRBtn");
+      const rrProgressWrap = document.getElementById("rrProgressWrap");
+      const rrStep1 = document.getElementById("rrStep1");
+      const rrStep2 = document.getElementById("rrStep2");
+      const rrOutputCard = document.getElementById("rrOutputCard");
+
+      function scoreColor(score) {
+        if (score >= 80) return "#3fb950";
+        if (score >= 50) return "#ffb84d";
+        return "#ff7070";
+      }
+
+      function fillList(listEl, items) {
+        listEl.innerHTML = "";
+        (items || []).forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = item; // textContent — never HTML — so no escaping needed
+          listEl.appendChild(li);
+        });
+      }
+
+      generateRRBtn.addEventListener("click", async () => {
+        const resume = JSON.parse(localStorage.getItem("latest_resume"));
+        if (!resume || !resume.resumeText) return;
+
+        generateRRBtn.disabled = true;
+        rrProgressWrap.style.display = "block";
+        rrOutputCard.style.display = "none";
+
+        rrStep1.classList.add("active");
+        rrStep1.classList.remove("done");
+        rrStep2.classList.remove("active", "done");
+
+        try {
+          await delay(600);
+          rrStep1.classList.remove("active");
+          rrStep1.classList.add("done");
+          rrStep2.classList.add("active");
+
+          const res = await fetch("/generate-resume-review", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ resumeText: resume.resumeText }),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed to review resume.");
+
+          rrStep2.classList.remove("active");
+          rrStep2.classList.add("done");
+          await delay(400);
+
+          const review = data.review || {};
+          const score = Number.isFinite(review.atsScore) ? Math.max(0, Math.min(100, Math.round(review.atsScore))) : null;
+          const circle = document.getElementById("rrScoreCircle");
+          circle.textContent = score === null ? "—" : score;
+          circle.style.color = score === null ? "" : scoreColor(score);
+          circle.style.borderColor = score === null ? "" : scoreColor(score);
+
+          document.getElementById("rrSummary").textContent = review.summary || "";
+          fillList(document.getElementById("rrStrengths"), review.strengths);
+          fillList(document.getElementById("rrWeaknesses"), review.weaknesses);
+          fillList(document.getElementById("rrSuggestions"), review.suggestions);
+
+          rrOutputCard.style.display = "block";
+        } catch (err) {
+          alert("Resume review failed: " + err.message);
+        } finally {
+          generateRRBtn.disabled = false;
+          rrProgressWrap.style.display = "none";
+        }
+      });
+
       // ── Profile Rendering ──
       function renderProfile() {
+        scheduleProfilePush(); // no-op if not signed in
+
         const resume = JSON.parse(localStorage.getItem("latest_resume"));
         const profNoResume = document.getElementById("profNoResume");
         const profResumeDetails = document.getElementById("profResumeDetails");
@@ -1393,18 +2287,41 @@
           profResumeDetails.style.display = "none";
         }
 
-        // Render Portfolio Deployment Link
-        const portfolioLink = localStorage.getItem("portfolio_link");
-        const profPortfolioLink = document.getElementById("profPortfolioLink");
-        const profPortfolioBtn = document.getElementById("profPortfolioBtn");
-        
-        if (portfolioLink) {
-          profPortfolioLink.innerHTML = `<a href="${portfolioLink}" target="_blank" style="color: var(--primary); text-decoration: underline;">${portfolioLink}</a>`;
-          profPortfolioBtn.style.display = "block";
-          profPortfolioBtn.href = portfolioLink;
+        // Render "My Portfolios" — one row per deploy (main profile + any named projects)
+        let deploys = [];
+        try {
+          deploys = JSON.parse(localStorage.getItem("portfolio_deploys")) || [];
+        } catch {}
+        deploys = deploys.filter((d) => isSafeHttpsUrl(d?.liveUrl));
+
+        const profPortfoliosEmpty = document.getElementById("profPortfoliosEmpty");
+        const profPortfoliosList = document.getElementById("profPortfoliosList");
+        profPortfoliosList.innerHTML = "";
+
+        if (deploys.length === 0) {
+          profPortfoliosEmpty.style.display = "block";
         } else {
-          profPortfolioLink.textContent = "Not deployed yet. Start in the Portfolio tab.";
-          profPortfolioBtn.style.display = "none";
+          profPortfoliosEmpty.style.display = "none";
+          deploys.forEach((d) => {
+            const label = d.repoName ? d.repoName : "Main profile";
+            const row = document.createElement("div");
+            row.style.cssText = "display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.6rem 0.75rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;";
+            row.innerHTML = `
+              <div style="min-width: 0;">
+                <div style="font-size: 0.7rem; color: var(--accent); font-family: var(--mono); font-weight: bold;">${escapeHTML(label)}</div>
+                <a href="${escapeHTML(d.liveUrl)}" target="_blank" rel="noopener noreferrer" style="font-size: 0.78rem; color: var(--text); text-decoration: underline; word-break: break-all;">${escapeHTML(d.liveUrl)}</a>
+              </div>
+              <button type="button" class="remove-portfolio-btn" data-url="${escapeHTML(d.liveUrl)}" title="Remove from this list (does not undeploy the site)" style="background: none; border: none; color: var(--textLight); cursor: pointer; padding: 0.25rem; flex-shrink: 0;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            `;
+            row.querySelector(".remove-portfolio-btn").addEventListener("click", () => {
+              const remaining = deploys.filter((x) => x.liveUrl !== d.liveUrl);
+              localStorage.setItem("portfolio_deploys", JSON.stringify(remaining));
+              renderProfile();
+            });
+            profPortfoliosList.appendChild(row);
+          });
         }
 
         // Render Cover Letters History
@@ -1486,6 +2403,143 @@
           .replace(/'/g, "&#039;");
       }
 
+      // Only accept plain https:// URLs before ever writing them into href/innerHTML —
+      // blocks javascript:/data: URI injection via the ?url= query param or stale localStorage.
+      function isSafeHttpsUrl(url) {
+        if (typeof url !== "string") return false;
+        try {
+          return new URL(url).protocol === "https:";
+        } catch {
+          return false;
+        }
+      }
+
+      // ── Sign in with GitHub: syncs this Profile dashboard across devices
+      // via a secret Gist in the user's own GitHub account. There is no
+      // server-side session — the GitHub token itself lives in localStorage
+      // and is sent with every sync request. ──
+      const PROFILE_TOKEN_KEY = "github_profile_token";
+      const PROFILE_USERNAME_KEY = "github_profile_username";
+
+      function getProfileToken() {
+        try {
+          return localStorage.getItem(PROFILE_TOKEN_KEY);
+        } catch {
+          return null;
+        }
+      }
+
+      function updateSyncUI() {
+        const token = getProfileToken();
+        const username = localStorage.getItem(PROFILE_USERNAME_KEY);
+        document.getElementById("signInBtn").style.display = token ? "none" : "inline-flex";
+        document.getElementById("signOutBtn").style.display = token ? "inline-flex" : "none";
+        document.getElementById("syncSignedOutText").style.display = token ? "none" : "block";
+        document.getElementById("syncSignedInText").style.display = token ? "block" : "none";
+        if (token && username) document.getElementById("syncUsername").textContent = username;
+      }
+
+      function mergeRemoteProfile(profile) {
+        if (!profile) return;
+        if (profile.resume) {
+          // The gist never stores the full resume text (kept small & low-PII by
+          // design) — preserve it locally if this browser already has it.
+          let localResumeText = "";
+          try {
+            const local = JSON.parse(localStorage.getItem("latest_resume"));
+            localResumeText = (local && local.resumeText) || "";
+          } catch {}
+          localStorage.setItem("latest_resume", JSON.stringify({
+            name: profile.resume.name || "",
+            tagline: profile.resume.tagline || "",
+            email: profile.resume.email || "",
+            skills: profile.resume.skills || [],
+            resumeText: localResumeText,
+          }));
+        }
+        if (Array.isArray(profile.portfolios)) {
+          localStorage.setItem("portfolio_deploys", JSON.stringify(profile.portfolios.map((p) => ({
+            liveUrl: p.liveUrl,
+            name: p.name || "",
+            repoName: p.repoName || "",
+            deployedAt: p.deployedAt || null,
+          }))));
+        }
+        if (Array.isArray(profile.coverLetters)) {
+          localStorage.setItem("cover_letters", JSON.stringify(profile.coverLetters));
+        }
+      }
+
+      async function pushProfile() {
+        const token = getProfileToken();
+        if (!token) return;
+
+        let resume = null;
+        try {
+          resume = JSON.parse(localStorage.getItem("latest_resume"));
+        } catch {}
+
+        const payload = {
+          resume: resume ? { name: resume.name, tagline: resume.tagline, email: resume.email, skills: resume.skills } : null,
+          portfolios: JSON.parse(localStorage.getItem("portfolio_deploys") || "[]"),
+          coverLetters: JSON.parse(localStorage.getItem("cover_letters") || "[]"),
+        };
+
+        try {
+          await fetch("/profile/sync", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify(payload),
+          });
+        } catch (e) {
+          // Best-effort background sync — a failure here shouldn't interrupt the user.
+        }
+      }
+
+      let syncDebounceTimer = null;
+      function scheduleProfilePush() {
+        if (!getProfileToken()) return;
+        clearTimeout(syncDebounceTimer);
+        syncDebounceTimer = setTimeout(pushProfile, 1200);
+      }
+
+      async function completeProfileSignIn(handoffCode) {
+        try {
+          const res = await fetch(`/auth/profile/session-token?code=${encodeURIComponent(handoffCode)}`);
+          const data = await res.json();
+          if (!res.ok || !data.accessToken) throw new Error(data.error || "Sign-in failed.");
+
+          localStorage.setItem(PROFILE_TOKEN_KEY, data.accessToken);
+
+          const syncRes = await fetch("/profile/sync", { headers: { "Authorization": `Bearer ${data.accessToken}` } });
+          const syncData = await syncRes.json();
+          if (syncRes.ok) {
+            if (syncData.username) localStorage.setItem(PROFILE_USERNAME_KEY, syncData.username);
+            mergeRemoteProfile(syncData.profile);
+          }
+          updateSyncUI();
+          renderProfile();
+        } catch (err) {
+          alert("Sign-in failed: " + err.message);
+        }
+      }
+
+      document.getElementById("signInBtn").addEventListener("click", () => {
+        window.location.href = "/auth/profile/github";
+      });
+
+      document.getElementById("signOutBtn").addEventListener("click", async () => {
+        const token = getProfileToken();
+        if (token) {
+          try {
+            await fetch("/auth/profile/signout", { method: "POST", headers: { "Authorization": `Bearer ${token}` } });
+          } catch (e) {}
+        }
+        localStorage.removeItem(PROFILE_TOKEN_KEY);
+        localStorage.removeItem(PROFILE_USERNAME_KEY);
+        updateSyncUI();
+      });
+
       // ── Tab Navigation ──
       const menuLinks = document.querySelectorAll(".menu-link");
       const tabContents = document.querySelectorAll(".tab-content");
@@ -1513,13 +2567,26 @@
         });
       });
 
+      // Adds/updates one entry in the "My Portfolios" list, keyed by URL —
+      // redeploying the same site (main profile or a named project) updates
+      // its existing row instead of creating a duplicate.
+      function addDeployedPortfolio({ liveUrl, name, repoName }) {
+        let deploys = [];
+        try {
+          deploys = JSON.parse(localStorage.getItem("portfolio_deploys")) || [];
+        } catch {}
+        deploys = deploys.filter((d) => d.liveUrl !== liveUrl);
+        deploys.unshift({ liveUrl, name: name || "", repoName: repoName || "", deployedAt: new Date().toISOString() });
+        localStorage.setItem("portfolio_deploys", JSON.stringify(deploys.slice(0, 20)));
+      }
+
       // ── Handle redirect back from GitHub OAuth ──
       const params = new URLSearchParams(window.location.search);
-      if (params.get('deployed') === 'true') {
+      if (params.get('deployed') === 'true' && isSafeHttpsUrl(params.get('url'))) {
         const url = params.get('url');
-        localStorage.setItem("portfolio_link", url);
+        addDeployedPortfolio({ liveUrl: url, name: params.get('name'), repoName: params.get('repo') });
         renderProfile();
-        
+
         const banner = document.getElementById('successBanner');
         const link = document.getElementById('liveLink');
         link.href = url;
@@ -1535,13 +2602,59 @@
         window.history.replaceState({}, '', '/');
       }
 
+      // ── Overwrite confirmation: existing (non-Portfol.io) content found on the target repo ──
+      if (params.get('confirmOverwrite') === 'true') {
+        const token = params.get('token') || '';
+        const repo = params.get('repo') || 'your GitHub Pages repo';
+
+        // Token is always server-generated hex; validate shape before using it in a URL.
+        if (/^[a-f0-9]{20,64}$/i.test(token)) {
+          document.getElementById('confirmRepoName').textContent = repo;
+          document.getElementById('confirmOverwriteBtn').href =
+            `/deploy/confirm?token=${encodeURIComponent(token)}&action=overwrite`;
+          document.getElementById('confirmCancelBtn').href =
+            `/deploy/confirm?token=${encodeURIComponent(token)}&action=cancel`;
+          document.getElementById('confirmOverlay').classList.add('visible');
+        }
+        window.history.replaceState({}, '', '/');
+      }
+
+      if (params.get('deployCancelled') === 'true') {
+        window.history.replaceState({}, '', '/');
+      }
+
+      if (params.get('profileSignin')) {
+        const handoffCode = params.get('profileSignin');
+        window.history.replaceState({}, '', '/');
+        completeProfileSignIn(handoffCode);
+      }
+
       // Page initialization
       checkResumeState();
       renderProfile();
+      updateSyncUI();
     </script>
     <div class="success-banner" id="successBanner">
   <div class="success-title">🎉 Portfolio deployed!</div>
   <div>Your site will be live at <a id="liveLink" href="#" target="_blank"></a> in ~60 seconds.</div>
 </div>
+
+    <!-- Overwrite confirmation dialog: shown only when username.github.io already
+         has content that wasn't created by Portfol.io -->
+    <div class="confirm-overlay" id="confirmOverlay">
+      <div class="confirm-card">
+        <div class="confirm-title">⚠️ Existing site found</div>
+        <div class="confirm-body">
+          Your GitHub Pages repo <strong id="confirmRepoName">—</strong> already has an
+          <strong>index.html</strong> that wasn't created by Portfol.io. Deploying now will
+          <strong>permanently overwrite it</strong>. This cannot be undone from here (though
+          GitHub keeps the file's commit history in the repo itself).
+        </div>
+        <div class="confirm-actions">
+          <a href="#" id="confirmCancelBtn" class="confirm-cancel">Cancel</a>
+          <a href="#" id="confirmOverwriteBtn" class="confirm-overwrite">Overwrite anyway</a>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

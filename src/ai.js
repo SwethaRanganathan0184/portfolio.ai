@@ -31,8 +31,9 @@ async function generatePortfolioData(resumeText) {
       "tagline": "one punchy headline describing who they are professionally",
       "about": "3 sentences in first person. Make it engaging, human, and clear. Avoid generic corporate buzzwords.",
       "email": "email address if found anywhere in resume, otherwise null",
-      "linkedin": "full linkedin.com URL if found, otherwise null. Common formats: linkedin.com/in/username",
-      "github": "full github.com URL if found, otherwise null. Common formats: github.com/username",
+      "linkedin": "full linkedin.com URL if found, otherwise null. Must start with https:// (e.g. https://linkedin.com/in/username)",
+      "github": "full github.com URL if found, otherwise null. Must start with https:// (e.g. https://github.com/username)",
+      "website": "full personal website/portfolio URL if found (not linkedin/github), otherwise null. Must start with https://",
       "phone": "phone number if found, otherwise null",
       "skills": ["skill1", "skill2", "skill3"],
       "experience": [
@@ -48,7 +49,7 @@ async function generatePortfolioData(resumeText) {
           "title": "project name",
           "description": "2 sentences. Focus on what it does and the business/technical impact.",
           "tags": ["tech1", "tech2"],
-          "url": "project url if mentioned, otherwise null"
+          "url": "project url if mentioned, otherwise null. Must start with https://"
         }
       ],
       "cta": "one short friendly sentence inviting people to get in touch"
@@ -178,4 +179,53 @@ async function generateCoverLetter(resumeText, jobDescription) {
   return result.response.text().trim();
 }
 
-module.exports = { generatePortfolioData, generateTheme, generateCoverLetter };
+async function generateResumeReview(resumeText) {
+  const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: { responseMimeType: "application/json" }
+  });
+
+  const prompt = `
+    You are an expert resume reviewer and former corporate recruiter with deep
+    knowledge of Applicant Tracking Systems (ATS).
+
+    Critically evaluate the resume text below and return honest, specific,
+    actionable feedback. Do not be flattering — a generic resume should score
+    low. Do not invent facts about the candidate that aren't in the text.
+
+    Resume:
+    ${resumeText}
+
+    Return ONLY a valid JSON object matching this schema. No markdown, no
+    backticks, no explanatory text.
+
+    {
+      "atsScore": <integer 0-100, how well this resume would parse and rank in a typical ATS>,
+      "summary": "2-3 sentence honest overall assessment",
+      "strengths": ["specific strength grounded in the actual resume text", "..."],
+      "weaknesses": ["specific weakness or gap", "..."],
+      "suggestions": ["specific, actionable improvement the candidate could make", "..."]
+    }
+
+    Scoring rubric for atsScore:
+    - 90-100: Excellent — quantified achievements, strong action verbs, clean structure, keyword-rich for its field
+    - 70-89: Good — solid content but missing some metrics/keywords or has formatting issues
+    - 50-69: Average — vague bullet points, few metrics, generic phrasing
+    - Below 50: Weak — sparse content, no quantified impact, likely to be filtered out by ATS
+
+    Keep strengths, weaknesses, and suggestions to 3-6 items each, one concise sentence per item.
+  `;
+
+  const result = await model.generateContent(prompt);
+  const text = result.response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleaned);
+  }
+}
+
+module.exports = { generatePortfolioData, generateTheme, generateCoverLetter, generateResumeReview };

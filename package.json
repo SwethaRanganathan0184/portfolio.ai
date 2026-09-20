@@ -4,8 +4,13 @@
   "description": "AI-powered portfolio generator",
   "main": "index.js",
   "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "server": "node server.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

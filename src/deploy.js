@@ -1,15 +1,96 @@
 const { Octokit } = require("@octokit/rest");
+const { PORTFOLIO_MARKER } = require("./generator");
+
+// GitHub repo-name rules: letters, digits, '.', '-', '_'; must start with an
+// alphanumeric; capped well under GitHub's own 100-char limit.
+const REPO_SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,89}$/;
+
+/**
+ * Resolves which repo a deploy should target.
+ * `username.github.io` is GitHub's reserved name for a personal ("user") Pages
+ * site — every deploy to it lands at the account's root domain. Any other repo
+ * name becomes a "project" site instead, served at username.github.io/repoName,
+ * which is what lets one GitHub account host more than one portfolio.
+ *
+ * @param {string} username
+ * @param {string} [repoSlug] - Optional custom repo name for a project site.
+ * @returns {string} The resolved repo name.
+ */
+function resolveRepoName(username, repoSlug) {
+  if (repoSlug && REPO_SLUG_RE.test(repoSlug)) return repoSlug;
+  return `${username}.github.io`;
+}
+
+/**
+ * @param {string} username
+ * @param {string} repoName
+ * @returns {string} The public URL the repo will be served at once Pages is enabled.
+ */
+function buildLiveUrl(username, repoName) {
+  if (repoName.toLowerCase() === `${username}.github.io`.toLowerCase()) {
+    return `https://${username}.github.io`;
+  }
+  return `https://${username}.github.io/${repoName}`;
+}
+
+/**
+ * Pure check, no network — whether existing repo content was created by this
+ * tool. Kept separate from checkDeployTarget() so it can be unit tested without
+ * mocking the GitHub API.
+ *
+ * @param {string|null} existingContent - The current index.html content, or null if none exists.
+ * @returns {boolean}
+ */
+function isForeignContent(existingContent) {
+  return existingContent != null && !existingContent.includes(PORTFOLIO_MARKER);
+}
+
+/**
+ * Checks whether deploying would overwrite content this tool didn't create.
+ *
+ * @param {Object} params
+ * @param {string} params.accessToken - GitHub OAuth access token.
+ * @param {string} [params.repoSlug] - Optional custom repo name for a project site.
+ * @returns {Promise<{username: string, repoName: string, isForeign: boolean}>}
+ */
+async function checkDeployTarget({ accessToken, repoSlug }) {
+  if (!accessToken) throw new Error("Missing GitHub access token.");
+
+  const octokit = new Octokit({ auth: accessToken });
+  const { data: user } = await octokit.rest.users.getAuthenticated();
+  const username = user.login;
+  const repoName = resolveRepoName(username, repoSlug);
+
+  let existingContent = null;
+  try {
+    const { data: existingFile } = await octokit.rest.repos.getContent({
+      owner: username,
+      repo: repoName,
+      path: "index.html",
+    });
+    if (existingFile && existingFile.content) {
+      existingContent = Buffer.from(existingFile.content, "base64").toString("utf8");
+    }
+  } catch (e) {
+    // Repo or index.html doesn't exist yet — nothing to conflict with.
+  }
+
+  return { username, repoName, isForeign: isForeignContent(existingContent) };
+}
 
 /**
  * Deploys the generated portfolio HTML directly to the user's GitHub Pages.
- * 
+ *
  * @param {Object} params
  * @param {string} params.accessToken - GitHub OAuth access token.
  * @param {string} params.html - The generated HTML string.
  * @param {string} params.portfolioName - The name of the portfolio owner.
- * @returns {Promise<{liveUrl: string}>}
+ * @param {string} [params.repoSlug] - Optional custom repo name to deploy as a
+ *   project site instead of the account's main user site, enabling multiple
+ *   portfolios on one GitHub account.
+ * @returns {Promise<{liveUrl: string, username: string, repoName: string}>}
  */
-async function deployToGitHubPages({ accessToken, html, portfolioName }) {
+async function deployToGitHubPages({ accessToken, html, portfolioName, repoSlug }) {
   if (!accessToken) throw new Error("Missing GitHub access token.");
   if (!html) throw new Error("No portfolio content to deploy.");
 
@@ -18,7 +99,7 @@ async function deployToGitHubPages({ accessToken, html, portfolioName }) {
   // 1. Get authenticated user info
   const { data: user } = await octokit.rest.users.getAuthenticated();
   const username = user.login;
-  const repoName = `${username}.github.io`;
+  const repoName = resolveRepoName(username, repoSlug);
 
   // 2. Create the repository if it doesn't exist
   try {
@@ -76,9 +157,17 @@ async function deployToGitHubPages({ accessToken, html, portfolioName }) {
   }
 
   return {
-    liveUrl: `https://${repoName}`,
+    liveUrl: buildLiveUrl(username, repoName),
     username,
+    repoName,
   };
 }
 
-module.exports = { deployToGitHubPages };
+module.exports = {
+  deployToGitHubPages,
+  checkDeployTarget,
+  isForeignContent,
+  resolveRepoName,
+  buildLiveUrl,
+  REPO_SLUG_RE,
+};
