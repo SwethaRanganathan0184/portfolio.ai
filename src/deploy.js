@@ -1,5 +1,15 @@
-const { Octokit } = require("@octokit/rest");
 const { PORTFOLIO_MARKER } = require("./generator");
+
+// @octokit/rest is a pure ESM package as of v20+, so it can't be loaded with
+// require() from this CommonJS file. Load it lazily via dynamic import()
+// instead (cached after the first call).
+let _octokitCtorPromise;
+function getOctokitCtor() {
+  if (!_octokitCtorPromise) {
+    _octokitCtorPromise = import("@octokit/rest").then((mod) => mod.Octokit);
+  }
+  return _octokitCtorPromise;
+}
 
 // GitHub repo-name rules: letters, digits, '.', '-', '_'; must start with an
 // alphanumeric; capped well under GitHub's own 100-char limit.
@@ -56,6 +66,7 @@ function isForeignContent(existingContent) {
 async function checkDeployTarget({ accessToken, repoSlug }) {
   if (!accessToken) throw new Error("Missing GitHub access token.");
 
+  const Octokit = await getOctokitCtor();
   const octokit = new Octokit({ auth: accessToken });
   const { data: user } = await octokit.rest.users.getAuthenticated();
   const username = user.login;
@@ -94,6 +105,7 @@ async function deployToGitHubPages({ accessToken, html, portfolioName, repoSlug 
   if (!accessToken) throw new Error("Missing GitHub access token.");
   if (!html) throw new Error("No portfolio content to deploy.");
 
+  const Octokit = await getOctokitCtor();
   const octokit = new Octokit({ auth: accessToken });
 
   // 1. Get authenticated user info
