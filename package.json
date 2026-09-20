@@ -13,7 +13,7 @@
     "url": "https://github.com/SwethaRanganathan0184/portfolio.ai/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "scripts": {
     "start": "node index.js",

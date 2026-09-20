@@ -58,7 +58,7 @@ Of the five areas originally flagged, security, testing/CI, and pre-deployment U
 ## 4. Developer Experience & Quality Assurance — ⚠️ Partially resolved
 
 - ✅ **Automated Testing Suite** — 45+ tests via Node's built-in test runner (`node --test`), covering escaping/XSS, color and contrast logic, deploy repo resolution, profile-sync clamping, and endpoint contracts. (Jest/Vitest/Supertest were the original suggestion; the built-in runner was chosen instead to add zero new dependencies.)
-- ✅ **CI/CD** — GitHub Actions runs the full suite on every push/PR across Node 18/20/22.
+- ✅ **CI/CD** — GitHub Actions runs the full suite on every push/PR across Node 20/22/24 (18 was dropped from the matrix — `@octokit/rest` v22 requires Node ≥ 20).
 - ❌ **CLI Enhancement** (`--deploy` flag, interactive prompts) — still open; the CLI only builds `./dist/index.html` locally.
 - ❌ **Docker & Containerization** — still open.
 - ❌ **Static Analysis & Tooling** (ESLint, Prettier, Husky) — still open.
