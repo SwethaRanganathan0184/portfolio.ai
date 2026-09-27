@@ -2607,8 +2607,13 @@
         const token = params.get('token') || '';
         const repo = params.get('repo') || 'your GitHub Pages repo';
 
-        // Token is always server-generated hex; validate shape before using it in a URL.
-        if (/^[a-f0-9]{20,64}$/i.test(token)) {
+        // Token is a server-signed JWT (three base64url segments separated by
+        // dots) — validate shape before using it in a URL. This used to be a
+        // plain random hex string before the confirm-overwrite flow was
+        // rewritten to use short-lived signed JWTs (see README), but this
+        // check was never updated to match, so it silently rejected every
+        // real token and the overlay below never showed.
+        if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) {
           document.getElementById('confirmRepoName').textContent = repo;
           document.getElementById('confirmOverwriteBtn').href =
             `/deploy/confirm?token=${encodeURIComponent(token)}&action=overwrite`;
