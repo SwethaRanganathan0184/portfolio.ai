@@ -10,7 +10,7 @@ Portfol.io is an all-in-one AI companion that turns your resume into a beautiful
 - 🧭 **Resume Review**: A separate tab scores your resume's ATS-friendliness (0-100) and lists specific, grounded strengths, weaknesses, and suggestions — no job description needed, just an honest read on the resume itself.
 - 🖨️ **Save as PDF**: Every generated portfolio ships with a print button and a dedicated print stylesheet (light colors, no nav/backdrop blur, no wasted ink) so "Save as PDF" from the browser's print dialog produces a clean one-pager.
 - 📚 **My Portfolios List**: The Profile tab tracks every site you've deployed — not just the last one — so multiple project-page deploys (see below) show up as a proper list with an Open link for each.
-- 🎨 **Premium Styling Options**: Supports four visually striking layout modes: **Minimalism**, **Glassmorphism**, **Brutalism**, and **Playful**, fully integrated with Lenis smooth scrolling and GSAP animations. Leave colors on "AI-picked" and Gemini chooses a palette that matches your professional profile — or flip on the custom-color toggle to set your own primary/accent/background colors.
+- 🎨 **Premium Styling Options**: Supports four visually striking layout modes: **Minimalism**, **Glassmorphism**, **Brutalism**, and **Playful**, fully integrated with Lenis smooth scrolling and GSAP animations. Leave colors on "AI-picked" and the AI chooses a palette that matches your professional profile — or flip on the custom-color toggle to set your own primary/accent/background colors.
 - 🔗 **Icon-Linked Contact Section**: Email, phone, GitHub, LinkedIn, and personal website are each rendered with their own icon when present in the resume.
 - 📝 **Tailored Cover Letter Generator**: Paste a target Job Description to generate an ATS-optimized, professional cover letter highlighting matching accomplishments from your resume.
 - 👤 **Candidate Profile Dashboard**: View your latest uploaded resume details (tagline, skills), keep track of your live portfolio link, and manage your cover letter generation history.
@@ -27,7 +27,7 @@ Portfol.io is an all-in-one AI companion that turns your resume into a beautiful
 ## Tech Stack
 
 - **Backend** — Node.js + Express
-- **AI Engine** — Google Gemini 2.5 Flash / 1.5 Flash (via `@google/generative-ai`)
+- **AI Engine** — Groq (`openai/gpt-oss-120b` via `groq-sdk`), using Structured Outputs (strict JSON Schema) for guaranteed-valid resume/portfolio/review data
 - **Resume Parsing** — `pdf-parse`, `mammoth`
 - **GitHub API Deployment** — GitHub OAuth + `@octokit/rest`
 - **Frontend** — Vanilla HTML, CSS, JavaScript (tabs, localStorage sync)
@@ -53,10 +53,10 @@ npm install
 
 ### 3. Get your API keys
 
-**Gemini API key (free):**
-1. Go to [aistudio.google.com](https://aistudio.google.com)
-2. Click "Get API Key" → "Create API key in new project"
-3. Copy the key
+**Groq API key (free, no card required):**
+1. Go to [console.groq.com/keys](https://console.groq.com/keys)
+2. Sign up/sign in (Google or GitHub sign-in both work)
+3. Click "Create API Key", copy it
 
 **GitHub OAuth credentials (free):**
 1. Go to [github.com/settings/developers](https://github.com/settings/developers)
@@ -74,7 +74,7 @@ Copy `.env.example` to `.env` and fill in your keys:
 cp .env.example .env
 ```
 ```
-GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 GITHUB_CLIENT_ID=your_github_client_id_here
 GITHUB_CLIENT_SECRET=your_github_client_secret_here
 
@@ -117,7 +117,7 @@ Then add your environment variables in the hosting platform's dashboard instead 
 This repo is already set up for it — `api/index.js` re-exports the Express app from `src/app.js` (which never calls `.listen()`, so it's already shaped as a request handler), and `vercel.json` rewrites every path to that one function.
 
 1. Push the repo to GitHub, then [import it on Vercel](https://vercel.com/new) — it needs no framework preset, the included `vercel.json`/`api/index.js` are enough.
-2. In the Vercel project's **Settings → Environment Variables**, add: `GEMINI_API_KEY`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and **`JWT_SECRET`** (see the callout below — this one isn't optional here). `CORS_ORIGIN` and `GEMINI_MODEL` are optional as elsewhere.
+2. In the Vercel project's **Settings → Environment Variables**, add: `GROQ_API_KEY`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and **`JWT_SECRET`** (see the callout below — this one isn't optional here). `CORS_ORIGIN` and `GROQ_MODEL` are optional as elsewhere.
 3. Once you have your `*.vercel.app` URL (or a custom domain), update the GitHub OAuth App's Homepage URL and Authorization callback URL to point at it (`https://your-app.vercel.app/auth/callback`), per the section above.
 4. Redeploy so the new callback URL and env vars take effect.
 
@@ -132,7 +132,7 @@ Because of that same statelessness, two flows in this app that used to hold data
 portfolio-gen/
 ├── src/
 │   ├── extract.js      # Resume text extraction (PDF + DOCX)
-│   ├── ai.js           # Gemini AI content + theme generation
+│   ├── ai.js           # Groq AI content + theme generation
 │   ├── generator.js    # HTML portfolio generation (+ WCAG contrast checks)
 │   ├── deploy.js       # GitHub Pages deployment (user-site + multi-portfolio project-site)
 │   ├── profileSync.js  # Cross-device profile sync via a secret Gist (no database)
@@ -172,7 +172,7 @@ If neither tradeoff sits well with you, just don't sign in — everything works 
 
 ## Usage Notes
 
-- Gemini free tier allows 1,500 requests per day — more than enough for personal use
+- Groq's free tier allows roughly 1,000 requests per day on `openai/gpt-oss-120b` — no credit card required, and comfortably enough for personal/public use at small-to-moderate traffic
 - Generated portfolios include dark/light mode toggle
 - Portfolios are mobile responsive out of the box
 - No data is stored — resumes are deleted immediately after processing
