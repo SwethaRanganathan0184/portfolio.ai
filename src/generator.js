@@ -333,7 +333,10 @@ function generateHTML(data, theme, options = {}) {
     /* ── Reset & Base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html { scroll-behavior: smooth; }
+    /* NOTE: deliberately no scroll-behavior: smooth here — Lenis (below)
+       already takes over scrolling via JS, and having the browser's native
+       smooth-scroll active at the same time makes scrolling feel laggy and
+       unreactive, since the two systems fight over scroll position. */
 
     body {
       font-family: var(--font);
@@ -919,7 +922,7 @@ function generateHTML(data, theme, options = {}) {
     gsap.registerPlugin(ScrollTrigger);
 
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 0.7, // lower = snappier/more reactive; 1.2 felt sluggish
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
     });
@@ -944,7 +947,7 @@ function generateHTML(data, theme, options = {}) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
-          lenis.scrollTo(target, { offset: -70, duration: 1.2 });
+          lenis.scrollTo(target, { offset: -70, duration: 0.9 });
         }
       });
     });
