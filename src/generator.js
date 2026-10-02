@@ -884,7 +884,7 @@ function generateHTML(data, theme, options = {}) {
 
   <footer>
     <div class="container">
-      Built with ✦ — ${name}
+      Built with ✦ Portfol.io— ${name}
     </div>
   </footer>
 
