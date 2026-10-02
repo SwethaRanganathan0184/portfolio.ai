@@ -114,3 +114,61 @@ test("picks readable (AA-contrast) hero-button text for a very dark custom prima
   const html = generateHTML(baseData(), baseTheme(), { colors: { primary: "#0a0a0a" } });
   assert.match(html, /\[data-theme="light"\] \.hero-cta \{ color: #ffffff; \}/);
 });
+
+// ── Custom design-brief CSS (options.customCSS) ──
+
+test("injects well-formed custom CSS into its own <style> tag, cascading after the base styles", () => {
+  const html = generateHTML(baseData(), baseTheme(), {
+    customCSS: ".hero-title { font-family: Georgia, serif; letter-spacing: 0.02em; }",
+  });
+  assert.ok(html.includes('<style id="custom-design-overrides">'));
+  assert.ok(html.includes("font-family: Georgia, serif"));
+  // The custom block must come after the main stylesheet, not before.
+  assert.ok(html.indexOf('<style id="custom-design-overrides">') > html.indexOf("</style>"));
+});
+
+test("omits the custom-overrides style tag entirely when there's no custom CSS", () => {
+  const html = generateHTML(baseData(), baseTheme(), {});
+  assert.ok(!html.includes('id="custom-design-overrides"'));
+});
+
+test("strips script/html tags smuggled inside custom CSS", () => {
+  const html = generateHTML(baseData(), baseTheme(), {
+    customCSS: '.hero{color:red}</style><script>alert(1)</script><style>',
+  });
+  assert.ok(!html.includes("<script>alert(1)</script>"));
+});
+
+test("strips @import and url() from custom CSS so it can't load external resources", () => {
+  const html = generateHTML(baseData(), baseTheme(), {
+    customCSS: `@import url('https://evil.example/x.css'); .bg { background: url(https://evil.example/track.png); }`,
+  });
+  const customBlock = html.slice(html.indexOf('id="custom-design-overrides"'));
+  assert.ok(!customBlock.includes("@import"));
+  assert.ok(!customBlock.includes("evil.example"));
+});
+
+test("neutralizes javascript: and expression() in custom CSS", () => {
+  const html = generateHTML(baseData(), baseTheme(), {
+    customCSS: `.x { background: expression(alert(1)); } a { color: javascript:alert(1); }`,
+  });
+  const customBlock = html.slice(html.indexOf('id="custom-design-overrides"'));
+  assert.ok(!customBlock.includes("expression("));
+  assert.ok(!customBlock.includes("javascript:"));
+});
+
+test("force-reverts an attempt to hide nav/footer/contact-links via custom CSS", () => {
+  const html = generateHTML(baseData(), baseTheme(), {
+    customCSS: "nav { display: none; } footer { visibility: hidden; }",
+  });
+  const customBlock = html.slice(html.indexOf('id="custom-design-overrides"'));
+  assert.ok(!customBlock.includes("display: none"));
+  assert.ok(!customBlock.includes("visibility: hidden"));
+});
+
+test("ignores non-string/empty custom CSS without throwing", () => {
+  assert.doesNotThrow(() => generateHTML(baseData(), baseTheme(), { customCSS: null }));
+  assert.doesNotThrow(() => generateHTML(baseData(), baseTheme(), { customCSS: 12345 }));
+  const html = generateHTML(baseData(), baseTheme(), { customCSS: "   " });
+  assert.ok(!html.includes('id="custom-design-overrides"'));
+});
