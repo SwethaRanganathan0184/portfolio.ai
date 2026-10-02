@@ -1657,6 +1657,20 @@
     </div>
 
     <script>
+     // This whole script used to run inline, synchronously, as the browser
+     // parsed the page top-to-bottom. That's fine for elements defined
+     // *above* this <script> tag, but several elements this code needs
+     // (#confirmOverlay, #confirmRepoName, #successBanner, and friends) are
+     // defined *below* it, further down the page. Since the browser hadn't
+     // parsed those yet at the moment this code ran, getElementById()
+     // returned null for them and the very next line (setting .textContent
+     // or .classList) threw, silently killing the rest of this script.
+     // That's why the "existing site found" overwrite-confirmation card,
+     // the deploy-success banner, and the deploy-error alert could all
+     // fail to ever appear, even when the deploy itself succeeded on
+     // GitHub's end. Wrapping everything in DOMContentLoaded guarantees the
+     // full page (including elements below this tag) is parsed first.
+     document.addEventListener("DOMContentLoaded", function () {
       const fileInput = document.getElementById("fileInput");
       const dropZone = document.getElementById("dropZone");
       const fileSelected = document.getElementById("fileSelected");
@@ -2638,6 +2652,7 @@
       checkResumeState();
       renderProfile();
       updateSyncUI();
+     }); // end DOMContentLoaded
     </script>
     <div class="success-banner" id="successBanner">
   <div class="success-title">🎉 Portfolio deployed!</div>
