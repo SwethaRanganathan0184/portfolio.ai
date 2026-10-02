@@ -254,6 +254,89 @@ async function generateCoverLetter(resumeText, jobDescription) {
   return (completion.choices[0]?.message?.content || "").trim();
 }
 
+// Generates additional CSS, layered on top of an already-complete, working
+// portfolio page, based on a free-text design brief the user wrote (e.g.
+// "make it feel like a dark, moody developer terminal" or "soft pastel,
+// rounded, lots of whitespace, like a Notion page"). This is explicitly NOT
+// asked to rebuild the page's colors from scratch — it reuses the page's
+// existing CSS custom properties so contrast/dark-mode guarantees aren't
+// silently broken, and it's fenced away from anything that could make the
+// page unsafe or unusable (no JS, no external resources, no hiding
+// essential UI). generator.js does a second, independent safety pass on
+// whatever comes back before it's ever embedded in the page — this prompt
+// is the first layer, not the only one.
+async function generateCustomStyleCSS({ portfolioData, style, designBrief }) {
+  const prompt = `
+    You are a senior front-end designer doing a CSS-only visual pass on an
+    existing, fully-functional one-page portfolio site. The page already has
+    working layout, responsive behavior, dark/light mode, and accessible
+    contrast — your job is to layer additional CSS on top that pushes the
+    *feel* of the page toward what the user describes below, without
+    breaking any of that.
+
+    Person's profile, for context only (do not add new text/content, you are
+    only writing CSS):
+    - Tagline: ${portfolioData.tagline}
+    - Role: ${portfolioData.experience?.[0]?.role || "professional"}
+
+    The current base visual style selected is: "${style}".
+
+    USER'S DESIGN BRIEF (what they want this page to feel like):
+    """
+    ${designBrief}
+    """
+
+    If the brief references a well-known product or site by name (e.g. "like
+    Stripe's site" or "like a terminal/IDE theme"), interpret it as a general
+    aesthetic direction from what you know of it — you cannot browse or see
+    the real page, so do not claim to replicate it exactly, just capture the
+    spirit (color mood, shapes, typography feel, density) as CSS.
+
+    The page defines these CSS custom properties already — use these for any
+    color, do NOT invent new literal hex/rgb colors, so contrast and
+    dark/light mode both stay correct automatically:
+    --primary, --secondary, --bg, --surface, --surfaceHov, --text,
+    --textLight, --accent, --border, --shadow, --font
+
+    Relevant existing class/id names you can target: nav, #hero, .hero-cta,
+    section, .project-card, .skill-tag, .theme-toggle, #scroll-progress,
+    footer, .contact-links.
+
+    You may use: border-radius, box-shadow, padding/margin/spacing,
+    font-weight/letter-spacing/text-transform, CSS transitions and
+    animations (CSS-only), gradients/patterns built from the variables
+    above, backdrop-filter, transform/hover effects, custom borders,
+    pseudo-elements for decoration.
+
+    You must NOT:
+    - use @import or url(...) (no external fonts, images, or resources)
+    - write any <script>, <style>, or other HTML tags — CSS rules only
+    - use "javascript:" anywhere
+    - set display:none or visibility:hidden on nav, #scroll-progress,
+      .theme-toggle, footer, .contact-links, or any element containing
+      contact info
+    - reduce body text below 14px, or remove focus-visible outlines without
+      supplying a clearly visible replacement focus style
+    - introduce horizontal scrolling on the page
+    - invent new literal colors instead of using the CSS variables listed
+      above (this is what keeps contrast safe)
+
+    Return ONLY raw CSS rules. No markdown code fences, no explanation, no
+    HTML — just the CSS text itself, ready to drop into a <style> tag.
+  `;
+
+  const completion = await getClient().chat.completions.create({
+    model: getModel(),
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const raw = (completion.choices[0]?.message?.content || "").trim();
+  // Light cleanup here (the model sometimes wraps output in a fence despite
+  // instructions); generator.js does the real security sanitization right
+  // before this is embedded in the page.
+  return raw.replace(/```css|```/gi, "").trim();
+}
+
 async function generateResumeReview(resumeText) {
   const prompt = `
     You are an expert resume reviewer and former corporate recruiter with deep
@@ -296,4 +379,4 @@ async function generateResumeReview(resumeText) {
   return generateStructured({ prompt, schemaName: "resume_review", schema });
 }
 
-module.exports = { generatePortfolioData, generateTheme, generateCoverLetter, generateResumeReview };
+module.exports = { generatePortfolioData, generateTheme, generateCoverLetter, generateResumeReview, generateCustomStyleCSS };
