@@ -657,6 +657,20 @@
         border-color: var(--primary);
       }
 
+      textarea.text-input {
+        resize: vertical;
+        min-height: 4.5rem;
+        line-height: 1.4;
+      }
+
+      .field-hint {
+        display: block;
+        margin-top: 0.4rem;
+        font-size: 0.72rem;
+        color: var(--textLight);
+        line-height: 1.4;
+      }
+
       @media (max-width: 480px) {
         .theme-grid,
         .color-fields.visible {
@@ -1306,6 +1320,17 @@
                 <label class="field-label" for="customFavicon">Favicon — emoji or image URL (optional)</label>
                 <input type="text" id="customFavicon" class="text-input" maxlength="300" placeholder="✦" />
               </div>
+              <div class="text-field">
+                <label class="field-label" for="designBrief">Describe a specific look you want (optional)</label>
+                <textarea
+                  id="designBrief"
+                  class="text-input"
+                  rows="3"
+                  maxlength="1500"
+                  placeholder="e.g. &quot;Dark, moody, editorial feel like a design studio site — big serif headlines, lots of whitespace, thin hairline dividers, subtle hover underlines on links&quot;"
+                ></textarea>
+                <span class="field-hint">The AI will do a CSS-only pass on top of the theme above based on this. It can't browse real websites, so describe the vibe/layout rather than naming a URL.</span>
+              </div>
             </div>
 
             <div class="error-box" id="errorBox"></div>
@@ -1688,7 +1713,7 @@
       let selectedFile = null;
       let generatedHTML = "";
       let currentPortfolioData = null;
-      let lastGenerateOptions = { style: "minimalism", title: "", favicon: "", colors: null };
+      let lastGenerateOptions = { style: "minimalism", title: "", favicon: "", colors: null, designBrief: "" };
 
       // ── Customize panel: theme / colors / title / favicon ──
       let activeStyle = "minimalism";
@@ -1815,6 +1840,7 @@
                 background: document.getElementById("colorBackground").value,
               }
             : null,
+          designBrief: document.getElementById("designBrief").value.trim(),
         };
 
         formData.append("style", lastGenerateOptions.style);
@@ -1822,6 +1848,9 @@
         formData.append("favicon", lastGenerateOptions.favicon);
         if (lastGenerateOptions.colors) {
           formData.append("colors", JSON.stringify(lastGenerateOptions.colors));
+        }
+        if (lastGenerateOptions.designBrief) {
+          formData.append("designBrief", lastGenerateOptions.designBrief);
         }
 
         try {
@@ -2055,6 +2084,7 @@
             favicon: lastGenerateOptions.favicon,
           };
           if (lastGenerateOptions.colors) payload.colors = lastGenerateOptions.colors;
+          payload.designBrief = lastGenerateOptions.designBrief || "";
 
           const res = await fetch("/regenerate-html", {
             method: "POST",
