@@ -10,7 +10,7 @@ const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 const { extractText } = require("./extract");
-const { generatePortfolioData, generateTheme, generateCoverLetter, generateResumeReview } = require("./ai");
+const { generatePortfolioData, generateTheme, generateCoverLetter, generateResumeReview, generateCustomStyleCSS } = require("./ai");
 const { generateHTML } = require("./generator");
 const { deployToGitHubPages, checkDeployTarget, REPO_SLUG_RE } = require("./deploy");
 const { getProfile, saveProfile, revokeToken } = require("./profileSync");
@@ -136,7 +136,14 @@ function readGenerationOptions(body) {
       // Fallback if parsing fails
     }
   }
-  return { style, title, favicon, colors };
+  // Free-form "design this like X" prompt — capped hard, since it's the one
+  // free-text field that gets sent back to the AI as an instruction (not
+  // just stored/displayed). generateCustomStyleCSS() treats it as content to
+  // riff on, never as something that can change what it's allowed to output,
+  // and sanitizeCustomCSS() in generator.js is the actual security backstop
+  // on whatever CSS comes back either way.
+  const designBrief = (body.designBrief || "").slice(0, 1500).trim();
+  return { style, title, favicon, colors, designBrief };
 }
 
 // Merges user-submitted edits onto the originally-extracted portfolioData,
@@ -199,7 +206,22 @@ app.post("/generate", generateLimiter, upload.single("resume"), async (req, res)
     const resumeText = req.file ? await extractText(filePath) : pastedText.slice(0, 20000);
     const portfolioData = await generatePortfolioData(resumeText);
     const theme = await generateTheme(portfolioData);
-    const html = generateHTML(portfolioData, theme, options);
+
+    // If the user described a custom look, ask the AI for a CSS-only pass
+    // on top of the base theme. Best-effort: if this fails (or there's no
+    // brief), we still deliver the normal portfolio rather than erroring
+    // the whole generation out.
+    let customCSS = "";
+    if (options.designBrief) {
+      try {
+        customCSS = await generateCustomStyleCSS({ portfolioData, style: options.style, designBrief: options.designBrief });
+      } catch (err) {
+        console.error("Custom style generation failed, continuing without it:", err);
+        customCSS = "";
+      }
+    }
+
+    const html = generateHTML(portfolioData, theme, { ...options, customCSS });
 
     // Clean up uploaded file (a no-op when this was a pasted-text submission)
     if (filePath && fs.existsSync(filePath)) {
@@ -209,7 +231,7 @@ app.post("/generate", generateLimiter, upload.single("resume"), async (req, res)
     // Store portfolio session (theme + data + options kept so later edits /
     // regenerations don't need another AI call)
     const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2);
-    portfolioStore.set(sessionId, { html, name: portfolioData.name, theme, portfolioData, options });
+    portfolioStore.set(sessionId, { html, name: portfolioData.name, theme, portfolioData, options, customCSS });
 
     // Clean up from memory store after 1 hour
     setTimeout(() => portfolioStore.delete(sessionId), 3600000);
@@ -233,7 +255,7 @@ app.post("/generate", generateLimiter, upload.single("resume"), async (req, res)
 
 // ── Re-render endpoint: applies content edits and/or style/color changes
 // without calling the AI again (theme + extracted data are already cached). ──
-app.post("/regenerate-html", apiLimiter, (req, res) => {
+app.post("/regenerate-html", apiLimiter, async (req, res) => {
   try {
     const { sessionId, portfolioData: edited } = req.body || {};
     const portfolio = sessionId && portfolioStore.get(sessionId);
@@ -243,10 +265,28 @@ app.post("/regenerate-html", apiLimiter, (req, res) => {
 
     const options = readGenerationOptions(req.body || {});
     const mergedData = clampPortfolioEdits(edited, portfolio.portfolioData);
-    const html = generateHTML(mergedData, portfolio.theme, options);
+
+    // Only re-call the AI for a fresh custom-CSS pass when the design brief
+    // actually changed — switching style/colors or editing text shouldn't
+    // cost another Groq call, so we reuse the cached CSS whenever the brief
+    // is unchanged (including the empty-string "no brief" case).
+    let customCSS = portfolio.customCSS || "";
+    if (options.designBrief !== (portfolio.options?.designBrief || "")) {
+      if (options.designBrief) {
+        try {
+          customCSS = await generateCustomStyleCSS({ portfolioData: mergedData, style: options.style, designBrief: options.designBrief });
+        } catch (err) {
+          console.error("Custom style generation failed, keeping previous styling:", err);
+        }
+      } else {
+        customCSS = "";
+      }
+    }
+
+    const html = generateHTML(mergedData, portfolio.theme, { ...options, customCSS });
 
     // Keep the store in sync so a later deploy uses the latest edits.
-    portfolioStore.set(sessionId, { ...portfolio, html, name: mergedData.name, portfolioData: mergedData, options });
+    portfolioStore.set(sessionId, { ...portfolio, html, name: mergedData.name, portfolioData: mergedData, options, customCSS });
 
     res.json({ html, name: mergedData.name });
   } catch (err) {
