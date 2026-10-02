@@ -26,6 +26,31 @@ function generateHTML(data, theme, options = {}) {
   const safeColor = (val, fallback) =>
     typeof val === 'string' && HEX_RE.test(val.trim()) ? val.trim() : fallback;
 
+  // Final safety pass on AI-generated custom CSS (options.customCSS) before
+  // it's embedded in the page. The prompt in ai.js already asks the model to
+  // avoid all of this, but a prompt is a request, not a guarantee — this is
+  // the actual enforcement boundary. Strips anything that could load an
+  // external resource, inject markup/script, or hide essential UI, and caps
+  // length so one AI response can't bloat the page indefinitely. Returns ''
+  // (i.e. no custom style block at all) for anything that isn't a string.
+  const sanitizeCustomCSS = (css) => {
+    if (typeof css !== 'string' || !css.trim()) return '';
+    let cleaned = css.replace(/```css|```/gi, '').trim();
+    cleaned = cleaned.replace(/<\/?[a-zA-Z!][^>]*>/g, '');       // no HTML/script tags
+    cleaned = cleaned.replace(/@import[^;]*;?/gi, '');            // no importing external stylesheets
+    cleaned = cleaned.replace(/url\s*\([^)]*\)/gi, 'none');       // no external resource loads
+    cleaned = cleaned.replace(/javascript\s*:/gi, '');
+    cleaned = cleaned.replace(/expression\s*\(/gi, 'none(');
+    // Never let generated CSS re-hide the elements that carry essential UI
+    // or contact info, regardless of what the model produced.
+    cleaned = cleaned.replace(
+      /(nav|#scroll-progress|\.theme-toggle|footer|\.contact-links)\s*\{[^}]*\}/gi,
+      (block) => block.replace(/display\s*:\s*none/gi, 'display: revert')
+                       .replace(/visibility\s*:\s*hidden/gi, 'visibility: visible')
+    );
+    return cleaned.slice(0, 20000);
+  };
+
   // ── WCAG contrast helpers ──
   // Backgrounds and the primary color can come from an AI guess or a user's
   // custom palette, neither of which is guaranteed to be readable against the
@@ -188,6 +213,10 @@ function generateHTML(data, theme, options = {}) {
   const darkText = readableTextOn(darkBg, '#f3f4f6', '#111111');
   const lightCtaText = readableTextOn(lightPrimary, '#ffffff', '#111111');
   const darkCtaText = readableTextOn(darkPrimary, '#ffffff', '#111111');
+
+  // AI-generated custom design CSS (optional — only present when the user
+  // wrote a design brief), sanitized once here and reused below.
+  const safeCustomCSS = sanitizeCustomCSS(options.customCSS);
 
   // ── Options: UI Style Overrides ──
   let styleCSS = "";
@@ -795,6 +824,7 @@ function generateHTML(data, theme, options = {}) {
       a { text-decoration: underline; }
     }
   </style>
+  ${safeCustomCSS ? `<style id="custom-design-overrides">\n${safeCustomCSS}\n  </style>` : ''}
 </head>
 <body>
 
@@ -884,7 +914,7 @@ function generateHTML(data, theme, options = {}) {
 
   <footer>
     <div class="container">
-      Built with ✦ Portfol.io— ${name}
+      Built with ✦ Portfol.io — ${name}
     </div>
   </footer>
 
