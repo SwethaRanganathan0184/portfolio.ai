@@ -256,30 +256,39 @@ async function generateCoverLetter(resumeText, jobDescription) {
 
 // Generates additional CSS, layered on top of an already-complete, working
 // portfolio page, based on a free-text design brief the user wrote (e.g.
-// "make it feel like a dark, moody developer terminal" or "soft pastel,
-// rounded, lots of whitespace, like a Notion page"). This is explicitly NOT
-// asked to rebuild the page's colors from scratch — it reuses the page's
-// existing CSS custom properties so contrast/dark-mode guarantees aren't
-// silently broken, and it's fenced away from anything that could make the
-// page unsafe or unusable (no JS, no external resources, no hiding
-// essential UI). generator.js does a second, independent safety pass on
-// whatever comes back before it's ever embedded in the page — this prompt
-// is the first layer, not the only one.
+// "bohemian, warm brown palette" or "dark, moody developer terminal").
+//
+// IMPORTANT: the base theme (generateTheme()) already picked a color
+// palette before this ever runs, and that palette lives in CSS custom
+// properties (--primary, --accent, --bg, --surface, --text, etc.) that
+// every component on the page is built on top of. If this prompt is told
+// to "never invent colors, just reuse the existing variables", a brief
+// asking for a different color palette is structurally impossible to
+// satisfy — it'll always get the base theme's colors back, no matter what
+// it asks for. So: when the brief implies specific colors or a mood with
+// an obvious palette, this is explicitly told to OVERRIDE those variables
+// with new literal colors at the same [data-theme="light"]/[data-theme="dark"]
+// selectors the base theme uses — since this CSS is injected after the
+// base stylesheet, the override wins the cascade and the new palette
+// propagates everywhere automatically (nav, buttons, cards, borders...)
+// without having to restyle each component individually.
 async function generateCustomStyleCSS({ portfolioData, style, designBrief }) {
   const prompt = `
     You are a senior front-end designer doing a CSS-only visual pass on an
     existing, fully-functional one-page portfolio site. The page already has
-    working layout, responsive behavior, dark/light mode, and accessible
-    contrast — your job is to layer additional CSS on top that pushes the
-    *feel* of the page toward what the user describes below, without
-    breaking any of that.
+    working layout, responsive behavior, a light/dark mode toggle, and
+    accessible contrast — your job is to push the *feel* (and palette, if
+    the brief implies one) of the page toward what the user describes below,
+    without breaking any of that.
 
     Person's profile, for context only (do not add new text/content, you are
     only writing CSS):
     - Tagline: ${portfolioData.tagline}
     - Role: ${portfolioData.experience?.[0]?.role || "professional"}
 
-    The current base visual style selected is: "${style}".
+    The current base visual style selected is: "${style}". Treat its colors
+    as a starting point only, not something to preserve — the whole point of
+    this feature is letting the user override them.
 
     USER'S DESIGN BRIEF (what they want this page to feel like):
     """
@@ -292,21 +301,42 @@ async function generateCustomStyleCSS({ portfolioData, style, designBrief }) {
     the real page, so do not claim to replicate it exactly, just capture the
     spirit (color mood, shapes, typography feel, density) as CSS.
 
-    The page defines these CSS custom properties already — use these for any
-    color, do NOT invent new literal hex/rgb colors, so contrast and
-    dark/light mode both stay correct automatically:
-    --primary, --secondary, --bg, --surface, --surfaceHov, --text,
-    --textLight, --accent, --border, --shadow, --font
+    ── Changing the color palette (do this whenever the brief names or
+    implies specific colors, e.g. "brown", "pastel", "neon", "monochrome") ──
+    The page's whole palette is driven by these CSS custom properties, set
+    once per theme mode:
+      [data-theme="light"] { --primary; --secondary; --bg; --surface;
+        --surfaceHov; --text; --textLight; --accent; --border; --shadow; }
+      [data-theme="dark"]  { --primary; --secondary; --bg; --surface;
+        --surfaceHov; --text; --textLight; --accent; --border; --shadow; }
+    To change the palette, redefine BOTH blocks above with new literal hex
+    colors that match the brief (one block for light mode, one for dark —
+    keep dark mode's --bg dark and light mode's --bg light; don't make light
+    mode dark or vice versa, just use the brief's palette within each mode).
+    Every component on the page (nav, buttons, cards, borders, text) is
+    already built on these variables via var(--primary) etc., so redefining
+    them here re-colors the entire site automatically — you do NOT need to
+    (and should not) write separate color overrides for individual elements
+    like nav or .project-card.
+    Requirements when you do this:
+      - --text on --bg, and --textLight on --bg, must stay clearly readable
+        (treat this like AA contrast: dark text on a light --bg, light text
+        on a dark --bg).
+      - Also explicitly set these two rules with a color that reads clearly
+        against YOUR new --primary, since they're pre-computed against the
+        old palette and won't update automatically:
+          [data-theme="light"] .hero-cta { color: ...; }
+          [data-theme="dark"]  .hero-cta { color: ...; }
+      - --accent should stay visually distinct from --primary and --bg.
 
-    Relevant existing class/id names you can target: nav, #hero, .hero-cta,
-    section, .project-card, .skill-tag, .theme-toggle, #scroll-progress,
-    footer, .contact-links.
-
-    You may use: border-radius, box-shadow, padding/margin/spacing,
+    ── Everything else (shape, type, motion) ──
+    You may also use: border-radius, box-shadow, padding/margin/spacing,
     font-weight/letter-spacing/text-transform, CSS transitions and
     animations (CSS-only), gradients/patterns built from the variables
     above, backdrop-filter, transform/hover effects, custom borders,
-    pseudo-elements for decoration.
+    pseudo-elements for decoration. Relevant existing class/id names: nav,
+    #hero, .hero-cta, section, .project-card, .skill-tag, .theme-toggle,
+    #scroll-progress, footer, .contact-links.
 
     You must NOT:
     - use @import or url(...) (no external fonts, images, or resources)
@@ -318,8 +348,6 @@ async function generateCustomStyleCSS({ portfolioData, style, designBrief }) {
     - reduce body text below 14px, or remove focus-visible outlines without
       supplying a clearly visible replacement focus style
     - introduce horizontal scrolling on the page
-    - invent new literal colors instead of using the CSS variables listed
-      above (this is what keeps contrast safe)
 
     Return ONLY raw CSS rules. No markdown code fences, no explanation, no
     HTML — just the CSS text itself, ready to drop into a <style> tag.
