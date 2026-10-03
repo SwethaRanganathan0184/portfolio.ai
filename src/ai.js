@@ -329,13 +329,49 @@ async function generateCustomStyleCSS({ portfolioData, style, designBrief }) {
           [data-theme="dark"]  .hero-cta { color: ...; }
       - --accent should stay visually distinct from --primary and --bg.
 
-    ── Everything else (shape, type, motion) ──
+    ── Changing the typeface (do this whenever the brief implies a type
+    feel — "serif", "handwritten", "typewriter", "futuristic", "elegant",
+    "playful", etc.) ──
+    The page already loads ONE Google Font via a <link> tag you cannot add
+    to — you have no way to load a second web font, so do NOT name a Google
+    Font (no "Playfair Display", no "Space Mono", etc.) in font-family; it
+    will silently fail to load and you'll get the browser's plain fallback
+    with nothing gained. Instead redefine the --font variable itself with a
+    web-safe stack the browser already has installed, picked to match the
+    brief's feel, for example:
+      --font: Georgia, 'Times New Roman', serif;              /* editorial, elegant, literary */
+      --font: 'Courier New', 'Lucida Console', monospace;     /* terminal, technical, retro-code */
+      --font: 'Brush Script MT', cursive;                     /* handwritten, personal, artsy */
+      --font: 'Trebuchet MS', 'Segoe UI', sans-serif;          /* clean, modern, friendly */
+      --font: Impact, 'Arial Black', sans-serif;               /* bold, loud, poster-like */
+      --font: 'Papyrus', fantasy;                              /* earthy/bohemian/handcrafted */
+    Redefine --font once per [data-theme] block (same two blocks as the
+    color overrides above) and it cascades everywhere via the existing
+    var(--font) rule — you don't need to set font-family on individual
+    elements. You may still use font-weight/letter-spacing/text-transform
+    for extra character within whatever stack you pick.
+
+    ── Decorative touches / "clipart" (only if the brief calls for
+    illustration, icons, or a decorative motif) ──
+    You cannot load external images, icons, or illustrations (url() is
+    blocked), so represent any requested motif using CSS alone:
+    - Unicode/emoji characters placed via a pseudo-element's content
+      property, e.g. section::before { content: "🌿"; } for a botanical
+      brief, or a row of "✦" / "◆" / "〜" as a decorative divider between
+      sections.
+    - Shapes drawn from CSS itself: radial-gradient "blobs" in a corner,
+      repeating-linear-gradient stripes/textures, clip-path polygons,
+      border-radius asymmetry for an organic/hand-drawn feel.
+    Keep these subtle and sized so they don't cover text or disrupt layout
+    on narrow (mobile-width) screens — a few well-placed accents, not a
+    background full of emoji.
+
+    ── Everything else (shape, motion) ──
     You may also use: border-radius, box-shadow, padding/margin/spacing,
-    font-weight/letter-spacing/text-transform, CSS transitions and
-    animations (CSS-only), gradients/patterns built from the variables
-    above, backdrop-filter, transform/hover effects, custom borders,
-    pseudo-elements for decoration. Relevant existing class/id names: nav,
-    #hero, .hero-cta, section, .project-card, .skill-tag, .theme-toggle,
+    CSS transitions and animations (CSS-only), gradients/patterns built
+    from the variables above, backdrop-filter, transform/hover effects,
+    custom borders. Relevant existing class/id names: nav, #hero,
+    .hero-cta, section, .project-card, .skill-tag, .theme-toggle,
     #scroll-progress, footer, .contact-links.
 
     You must NOT:
