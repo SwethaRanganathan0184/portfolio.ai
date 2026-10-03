@@ -33,6 +33,9 @@ function generateHTML(data, theme, options = {}) {
   // external resource, inject markup/script, or hide essential UI, and caps
   // length so one AI response can't bloat the page indefinitely. Returns ''
   // (i.e. no custom style block at all) for anything that isn't a string.
+  // Note: literal hex/rgb colors (including on [data-theme=...] blocks) are
+  // intentionally allowed through — overriding the theme's palette is the
+  // whole point of a design brief that names specific colors.
   const sanitizeCustomCSS = (css) => {
     if (typeof css !== 'string' || !css.trim()) return '';
     let cleaned = css.replace(/```css|```/gi, '').trim();
