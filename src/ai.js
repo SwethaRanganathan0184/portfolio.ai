@@ -354,17 +354,35 @@ async function generateCustomStyleCSS({ portfolioData, style, designBrief }) {
     ── Decorative touches / "clipart" (only if the brief calls for
     illustration, icons, or a decorative motif) ──
     You cannot load external images, icons, or illustrations (url() is
-    blocked), so represent any requested motif using CSS alone:
-    - Unicode/emoji characters placed via a pseudo-element's content
-      property, e.g. section::before { content: "🌿"; } for a botanical
-      brief, or a row of "✦" / "◆" / "〜" as a decorative divider between
-      sections.
-    - Shapes drawn from CSS itself: radial-gradient "blobs" in a corner,
-      repeating-linear-gradient stripes/textures, clip-path polygons,
-      border-radius asymmetry for an organic/hand-drawn feel.
-    Keep these subtle and sized so they don't cover text or disrupt layout
-    on narrow (mobile-width) screens — a few well-placed accents, not a
-    background full of emoji.
+    blocked), so represent any requested motif using CSS alone — but a
+    decorative glyph placed carelessly WILL visually collide with text,
+    because an unstyled pseudo-element inherits its parent's font-size, and
+    headings on this page are very large. Follow this exactly:
+    - NEVER attach decorative content to #hero, .hero-name, h1, h2, or any
+      element that wraps the person's name, tagline, or body copy — a glyph
+      placed there inherits that element's huge font-size and will overlap
+      or distort the text. Decoration only belongs on elements that don't
+      themselves contain important text: section dividers, footer, card
+      corners, or a non-text wrapper div/nav.
+    - ALWAYS give a decorative pseudo-element its own explicit, modest
+      font-size (never inherited) plus margin so it sits in its own space:
+        .section-title::before { content: "🌿"; font-size: 1.3rem;
+          margin-right: 0.5rem; display: inline-block; }
+      (margin-right here — not absolute positioning — is what keeps it from
+      landing on top of the text next to it.)
+    - If you do use position: absolute for a corner accent (e.g. a blob
+      behind a card), it must sit fully outside the text's box (e.g.
+      top: -0.75rem; right: -0.75rem on a container with padding to spare)
+      and include z-index: -1 or pointer-events: none so it can never
+      intercept clicks or sit visually on top of readable text.
+    - A row of "✦" / "◆" / "〜" as a standalone divider BETWEEN sections
+      (its own block-level line, not attached to a heading) is always safe.
+    - Shapes drawn from CSS itself — radial-gradient "blobs" in a card
+      corner, repeating-linear-gradient textures, clip-path polygons,
+      border-radius asymmetry — are safe as long as they follow the
+      absolute-positioning rule above.
+    Keep all of this subtle and test it mentally against mobile width — a
+    few well-placed accents, never covering or crowding text.
 
     ── Everything else (shape, motion) ──
     You may also use: border-radius, box-shadow, padding/margin/spacing,
