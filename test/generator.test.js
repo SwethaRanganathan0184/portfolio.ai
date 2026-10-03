@@ -127,6 +127,22 @@ test("injects well-formed custom CSS into its own <style> tag, cascading after t
   assert.ok(html.indexOf('<style id="custom-design-overrides">') > html.indexOf("</style>"));
 });
 
+test("a custom-CSS palette override on [data-theme] wins over the base theme's colors", () => {
+  // This is the actual bug report: the base theme already set --primary to
+  // blue/purple, and the custom CSS needs to be able to override it with a
+  // brief-requested palette (e.g. brown) rather than being stuck reusing
+  // the base theme's variables. Confirms the override appears *after* the
+  // base [data-theme="light"] block, so it wins the cascade.
+  const html = generateHTML(baseData(), baseTheme(), {
+    customCSS: '[data-theme="light"] { --primary: #6b4226; --bg: #f5efe6; } [data-theme="dark"] { --primary: #a97155; --bg: #2a211c; }',
+  });
+  const baseBlockIndex = html.indexOf('[data-theme="light"] {');
+  const overrideIndex = html.lastIndexOf('[data-theme="light"] {');
+  assert.ok(overrideIndex > baseBlockIndex, "override block must come after the base theme block");
+  assert.ok(html.includes("#6b4226"));
+  assert.ok(html.includes("#a97155"));
+});
+
 test("omits the custom-overrides style tag entirely when there's no custom CSS", () => {
   const html = generateHTML(baseData(), baseTheme(), {});
   assert.ok(!html.includes('id="custom-design-overrides"'));
