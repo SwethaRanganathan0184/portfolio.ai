@@ -51,6 +51,16 @@ function generateHTML(data, theme, options = {}) {
       (block) => block.replace(/display\s*:\s*none/gi, 'display: revert')
                        .replace(/visibility\s*:\s*hidden/gi, 'visibility: visible')
     );
+    // Never let generated CSS put decorative ::before/::after content
+    // directly on the hero name/tagline (or any h1) — it inherits that
+    // element's very large font-size and visually collides with the text
+    // (observed in testing: a decorative emoji landed on top of the name).
+    // The prompt in ai.js already tells the model to avoid this; this is
+    // the enforcement backstop.
+    cleaned = cleaned.replace(
+      /((?:#hero|\.hero-name|\.hero-tagline|\.highlight|h1)[^{};]*::\s*(?:before|after))\s*\{[^}]*\}/gi,
+      (_full, selector) => `${selector} { content: none; }`
+    );
     return cleaned.slice(0, 20000);
   };
 
