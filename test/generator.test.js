@@ -188,3 +188,20 @@ test("ignores non-string/empty custom CSS without throwing", () => {
   const html = generateHTML(baseData(), baseTheme(), { customCSS: "   " });
   assert.ok(!html.includes('id="custom-design-overrides"'));
 });
+
+test("strips decorative ::before/::after content off the hero name so it can't visually collide with the text", () => {
+  const html = generateHTML(baseData(), baseTheme(), {
+    customCSS: '.hero-name::before { content: "🌿"; font-size: 3rem; position: absolute; }',
+  });
+  const customBlock = html.slice(html.indexOf('id="custom-design-overrides"'));
+  assert.ok(!customBlock.includes("🌿"));
+  assert.match(customBlock, /\.hero-name::\s*before\s*\{\s*content:\s*none;\s*\}/);
+});
+
+test("still allows decorative content on a safe, non-heading element like a section divider", () => {
+  const html = generateHTML(baseData(), baseTheme(), {
+    customCSS: '.section-divider::before { content: "✦"; font-size: 1.2rem; margin-right: 0.5rem; }',
+  });
+  const customBlock = html.slice(html.indexOf('id="custom-design-overrides"'));
+  assert.ok(customBlock.includes("✦"));
+});
