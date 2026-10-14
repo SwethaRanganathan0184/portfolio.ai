@@ -118,7 +118,7 @@ program
   .name("portfolio-gen")
   .description("Generate a portfolio website from your resume using AI")
   .argument("<resume>", "Path to your resume file (PDF or DOCX)")
-  .option("-s, --style <style>", "UI Style (minimalism, glassmorphism, brutalism, playful)", "minimalism")
+  .option("-s, --style <style>", `UI Style (${require("./src/styles").STYLE_NAMES.join(", ")})`, "minimalism")
   .option("-t, --title <title>", "Custom webpage title")
   .option("-f, --favicon <favicon>", "Custom favicon (Emoji or URL)")
   .option("-c, --colors <colors>", "Comma-separated custom colors (primary,accent,background)")

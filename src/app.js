@@ -17,6 +17,15 @@ const { getProfile, saveProfile, revokeToken } = require("./profileSync");
 
 const app = express();
 
+// On Vercel every request reaches us through Vercel's proxy, so without this
+// req.ip is the proxy's address and express-rate-limit would put ALL users
+// in one shared bucket. Only enabled where we know a trusted proxy sits in
+// front — trusting X-Forwarded-For anywhere else would let a client spoof
+// its IP and dodge the rate limits entirely.
+if (process.env.VERCEL) {
+  app.set("trust proxy", 1);
+}
+
 // A predictable/shared JWT secret would let an attacker forge the OAuth
 // CSRF "state" token. Never fall back to a hardcoded string — generate a
 // random per-process secret if the operator hasn't configured one.
@@ -29,7 +38,8 @@ if (!process.env.JWT_SECRET) {
 }
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(48).toString("hex");
 
-const ALLOWED_STYLES = ["minimalism", "glassmorphism", "brutalism", "playful"];
+// Single source of truth: the styles that actually exist in src/styles.js.
+const { STYLE_NAMES: ALLOWED_STYLES } = require("./styles");
 
 // ── Rate Limiting ──
 const apiLimiter = rateLimit({
@@ -50,7 +60,9 @@ const generateLimiter = rateLimit({
 const corsOrigin = process.env.CORS_ORIGIN;
 app.use(cors(corsOrigin ? { origin: corsOrigin.split(",").map((o) => o.trim()) } : undefined));
 
-app.use(express.json());
+// Raised from the 100kb default: /regenerate-html can now carry an uploaded
+// profile photo (~180KB max as base64) and favicon alongside the edits.
+app.use(express.json({ limit: "512kb" }));
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 // ── Multer Storage Configuration ──
@@ -122,8 +134,14 @@ function requireBearerToken(req, res, next) {
 
 function readGenerationOptions(body) {
   const style = ALLOWED_STYLES.includes(body.style) ? body.style : "minimalism";
-  const title = (body.title || "").slice(0, 100);
-  const favicon = (body.favicon || "").slice(0, 300);
+  // String() so a JSON body sending an object/array here can't crash .slice().
+  const title = String(body.title || "").slice(0, 100);
+  const favicon = String(body.favicon || "").slice(0, 300);
+  // Uploaded favicon as a PNG data: URL. Only length-capped here (anything
+  // longer is rejected outright rather than truncated into garbage);
+  // generateHTML() does the real validation, including the PNG signature check.
+  const rawFaviconData = typeof body.faviconData === "string" ? body.faviconData : "";
+  const faviconData = rawFaviconData.length <= 50000 ? rawFaviconData : "";
   let colors = {};
   if (body.colors) {
     try {
@@ -142,8 +160,36 @@ function readGenerationOptions(body) {
   // riff on, never as something that can change what it's allowed to output,
   // and sanitizeCustomCSS() in generator.js is the actual security backstop
   // on whatever CSS comes back either way.
-  const designBrief = (body.designBrief || "").slice(0, 1500).trim();
-  return { style, title, favicon, colors, designBrief };
+  const designBrief = String(body.designBrief || "").slice(0, 1500).trim();
+
+  // ── Personalization ── Bounded and shape-checked here; generateHTML() does
+  // the content validation (allowlisted keys, URL schemes, escaping).
+  // Multipart (/generate) sends these as JSON strings, the JSON endpoint
+  // (/regenerate-html) as objects, so accept both.
+  const parseJSONField = (value) => {
+    if (typeof value !== "string") return value;
+    try { return JSON.parse(value); } catch { return undefined; }
+  };
+  const rawSections = parseJSONField(body.sections);
+  const sections = rawSections && typeof rawSections === "object" && !Array.isArray(rawSections)
+    ? {
+        order: Array.isArray(rawSections.order) ? rawSections.order.slice(0, 10).map(String) : [],
+        hidden: Array.isArray(rawSections.hidden) ? rawSections.hidden.slice(0, 10).map(String) : [],
+        labels: rawSections.labels && typeof rawSections.labels === "object"
+          ? Object.fromEntries(Object.entries(rawSections.labels).slice(0, 10).map(([k, v]) => [String(k), String(v).slice(0, 40)]))
+          : {},
+      }
+    : {};
+  const rawLinks = parseJSONField(body.links);
+  const links = Array.isArray(rawLinks)
+    ? rawLinks.slice(0, 6).map((l) => ({ label: String(l?.label || "").slice(0, 30), url: String(l?.url || "").slice(0, 300) }))
+    : [];
+  const fontPair = typeof body.fontPair === "string" ? body.fontPair.slice(0, 30) : "";
+  const ctaLabel = typeof body.ctaLabel === "string" ? body.ctaLabel.slice(0, 40) : "";
+  const rawAvatarData = typeof body.avatarData === "string" ? body.avatarData : "";
+  const avatarData = rawAvatarData.length <= 250000 ? rawAvatarData : "";
+
+  return { style, title, favicon, faviconData, colors, designBrief, sections, links, fontPair, ctaLabel, avatarData };
 }
 
 // Merges user-submitted edits onto the originally-extracted portfolioData,
@@ -160,21 +206,32 @@ function clampPortfolioEdits(edited, original) {
     clamped.tagline = str(edited.tagline, 200) || original.tagline;
     clamped.about = str(edited.about, 2000) || original.about;
     clamped.cta = str(edited.cta, 200) || original.cta;
-    clamped.skills = arr(edited.skills, 40).map((s) => str(s, 60)).filter(Boolean);
 
-    clamped.experience = arr(edited.experience, 20).map((exp) => ({
-      company: str(exp?.company, 150),
-      role: str(exp?.role, 150),
-      period: str(exp?.period, 100),
-      highlight: str(exp?.highlight, 400),
-    }));
-
-    clamped.projects = arr(edited.projects, 20).map((proj) => ({
-      title: str(proj?.title, 150),
-      description: str(proj?.description, 500),
-      tags: arr(proj?.tags, 15).map((t) => str(t, 40)).filter(Boolean),
-      url: str(proj?.url, 500) || null,
-    }));
+    // List fields are only replaced when the edit actually includes them —
+    // an edit that omits `projects` means "unchanged", not "delete them all".
+    // (An explicitly sent empty array still clears the list on purpose.)
+    if (Array.isArray(edited.skills)) {
+      clamped.skills = arr(edited.skills, 40).map((s) => str(s, 60)).filter(Boolean);
+    }
+    if (Array.isArray(edited.experience)) {
+      clamped.experience = arr(edited.experience, 20).map((exp) => ({
+        company: str(exp?.company, 150),
+        role: str(exp?.role, 150),
+        period: str(exp?.period, 100),
+        highlight: str(exp?.highlight, 400),
+      }));
+    }
+    if (Array.isArray(edited.projects)) {
+      clamped.projects = arr(edited.projects, 20).map((proj) => ({
+        title: str(proj?.title, 150),
+        description: str(proj?.description, 500),
+        tags: arr(proj?.tags, 15).map((t) => str(t, 40)).filter(Boolean),
+        url: str(proj?.url, 500) || null,
+      }));
+    }
+    if (Array.isArray(edited.certifications)) {
+      clamped.certifications = arr(edited.certifications, 20).map((c) => str(c, 150)).filter(Boolean);
+    }
   }
 
   // Contact fields always come from the original extraction, never from the client.
@@ -255,7 +312,20 @@ app.post("/generate", generateLimiter, upload.single("resume"), async (req, res)
 
 // ── Re-render endpoint: applies content edits and/or style/color changes
 // without calling the AI again (theme + extracted data are already cached). ──
-app.post("/regenerate-html", apiLimiter, async (req, res) => {
+// /regenerate-html is normally a free re-render, but a CHANGED design brief
+// makes it call the AI. Those calls count against the same budget as
+// /generate instead of the looser apiLimiter, so toggling a brief back and
+// forth can't be used to make 3x as many AI calls.
+function limitIfBriefChanged(req, res, next) {
+  const portfolio = req.body?.sessionId && portfolioStore.get(req.body.sessionId);
+  const brief = String(req.body?.designBrief || "").slice(0, 1500).trim();
+  if (portfolio && brief && brief !== (portfolio.options?.designBrief || "")) {
+    return generateLimiter(req, res, next);
+  }
+  next();
+}
+
+app.post("/regenerate-html", apiLimiter, limitIfBriefChanged, async (req, res) => {
   try {
     const { sessionId, portfolioData: edited } = req.body || {};
     const portfolio = sessionId && portfolioStore.get(sessionId);

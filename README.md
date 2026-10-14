@@ -6,15 +6,22 @@ Portfol.io is an all-in-one AI companion that turns your resume into a beautiful
 
 ## Features
 
-- 💻 **AI Portfolio Generator**: Upload a PDF/DOCX resume — or paste resume text directly (handy if you're copying from LinkedIn or a Google Doc) — pick a theme, optionally set a page title/favicon and a 3-color palette (primary / accent / background), and generate a fully designed portfolio.
+- 💻 **AI Portfolio Generator**: Upload a PDF/DOCX resume — or paste resume text directly (handy if you're copying from LinkedIn or a Google Doc) — pick a theme, optionally set a page title, favicon and a 3-color palette (primary / accent / background), and generate a fully designed portfolio. The favicon can be an emoji, an image URL, or an **uploaded image**. Uploads are resized in your browser to a 64×64 PNG and embedded right in the page, so the portfolio stays a single self-contained file with nothing extra to host.
 - 🧭 **Resume Review**: A separate tab scores your resume's ATS-friendliness (0-100) and lists specific, grounded strengths, weaknesses, and suggestions — no job description needed, just an honest read on the resume itself.
 - 🖨️ **Save as PDF**: Every generated portfolio ships with a print button and a dedicated print stylesheet (light colors, no nav/backdrop blur, no wasted ink) so "Save as PDF" from the browser's print dialog produces a clean one-pager.
 - 📚 **My Portfolios List**: The Profile tab tracks every site you've deployed — not just the last one — so multiple project-page deploys (see below) show up as a proper list with an Open link for each.
-- 🎨 **Premium Styling Options**: Supports four visually striking layout modes: **Minimalism**, **Glassmorphism**, **Brutalism**, and **Playful**, fully integrated with Lenis smooth scrolling and GSAP animations. Leave colors on "AI-picked" and the AI chooses a palette that matches your professional profile — or flip on the custom-color toggle to set your own primary/accent/background colors.
-- 🔗 **Icon-Linked Contact Section**: Email, phone, GitHub, LinkedIn, and personal website are each rendered with their own icon when present in the resume.
+- 🎨 **Eight Distinct Visual Styles**, each a full design layer with its own typography, not just recolored corners: **Minimalism** (light/bold type contrast, numbered sections, monochrome), **Glassmorphism** (frosted panels and a floating pill nav over a blurred, palette-colored backdrop), **Brutalism** (uppercase Space Grotesk, Space Mono labels, hard offset shadows), **Playful** (rounded Fredoka type, candy-colored tilted cards, wavy underlines), **Editorial** (Playfair headlines, drop caps, two-column ruled text), **Terminal** (shell prompts, a blinking cursor, CRT scanlines in dark mode), **Bento** (the whole page as a grid of rounded tiles), and **Neon** (glowing Orbitron type over a synthwave horizon grid). All work in light and dark mode, with Lenis smooth scrolling and GSAP animations. Leave colors on "AI-picked" and the AI chooses a palette that matches your professional profile — or flip on the custom-color toggle to set your own primary/accent/background colors.
+- 🔗 **Icon-Linked Contact Section**: Email, phone, GitHub, LinkedIn, and personal website are each rendered with their own icon when present in the resume — plus up to 6 **extra links** of your own (X/Twitter, YouTube, Instagram, Dribbble and blog links get matching icons automatically).
+- 🧩 **Personalization**:
+  - **Sections**: show, hide, rename ("Projects" → "Selected Work"), and reorder them. The nav follows along, and sections with nothing to show are skipped automatically.
+  - **Profile photo**: upload one and it's cropped and resized in your browser, then embedded in the hero and styled to match each theme.
+  - **Font pairings**: Modern, Editorial, Geometric, Friendly, Technical, and Elegant all override the AI's pick.
+  - **Main button text**: set your own instead of "Get in touch".
+  - **Certifications**: pulled from your resume into their own section.
+- ⚡ **Apply design changes without regenerating**: after the first generation, change the theme, fonts, sections, links, or photo and re-apply instantly. Your resume data and AI theme are cached, so there's no new AI call (unless you change the design brief).
 - 📝 **Tailored Cover Letter Generator**: Paste a target Job Description to generate an ATS-optimized, professional cover letter highlighting matching accomplishments from your resume.
 - 👤 **Candidate Profile Dashboard**: View your latest uploaded resume details (tagline, skills), keep track of your live portfolio link, and manage your cover letter generation history.
-- ✏️ **Edit Before You Deploy**: Click **Edit content** in the preview to fix a wrong AI guess — name, tagline, about, CTA, skills, experience, and project entries are all editable, and "Apply changes to preview" re-renders instantly without another AI call.
+- ✏️ **Edit Before You Deploy**: Click **Edit content** in the preview to fix a wrong AI guess — name, tagline, about, CTA, skills, experience, and project entries are all editable, and "Apply changes to preview" re-renders instantly without another AI call (unless you changed the design brief, which needs a fresh AI styling pass).
 - 🖼️ **Multiple Portfolios, One GitHub Account**: Deploying always targets `username.github.io` by default (GitHub's one-per-account "user site"). Give a deploy a project name instead (e.g. `side-project`) to publish it as a separate site at `username.github.io/side-project`, so you can keep more than one portfolio live at once.
 - 🛡️ **Overwrite Protection**: If `username.github.io` already has content Portfol.io didn't create, deploying pauses and asks you to confirm before overwriting it, instead of silently clobbering an existing site.
 - ♿ **Contrast-Checked Themes**: Body text and the hero call-to-action button's text color are computed against the actual resolved background/primary color (AI-picked or custom) using the real WCAG contrast formula, so an unusual palette can't accidentally produce unreadable text.
@@ -178,7 +185,8 @@ If neither tradeoff sits well with you, just don't sign in — everything works 
 - No data is stored — resumes are deleted immediately after processing
 - Deploying always targets `username.github.io` unless you give it a project name in the deploy dialog — that reserved repo name is GitHub's one-per-account "user site," so it's also the only URL a plain deploy will ever reuse
 - If `username.github.io` already has unrelated content when you deploy (e.g. an existing personal site), you'll be asked to confirm before it's overwritten
-- Editing content in the preview and clicking "Apply changes" doesn't call the AI again — it's a free, instant re-render using the same extracted data
+- Editing content in the preview and clicking "Apply changes" doesn't call the AI again — it's a free, instant re-render using the same extracted data. The one exception is changing the design brief, which triggers a new AI styling pass and counts toward the same rate limit as generating a portfolio
+- AI calls time out after 20s and are retried automatically on rate-limit/server errors (built into `groq-sdk`); the Vercel function limit is set to 60s in `vercel.json` so a full generation (up to three AI calls) fits
 
 ---
 

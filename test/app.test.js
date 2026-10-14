@@ -183,7 +183,77 @@ test("POST /regenerate-html applies edits, keeps them escaped, and preserves ori
   assert.ok(!data.html.includes("attacker@evil.com"));
   assert.ok(data.html.includes("https://github.com/janedoe"));
   assert.ok(!data.html.includes("javascript:"));
-  assert.ok(data.html.includes("Glassmorphism Overrides"));
+  // The requested style's layer was applied: its frosted panels and its font.
+  assert.ok(data.html.includes("section:not(#hero) > .container"));
+  assert.ok(data.html.includes("family=Outfit"));
+});
+
+test("POST /regenerate-html embeds an uploaded favicon sent as faviconData", async () => {
+  seedSession("session-favicon-test");
+  const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+  const res = await fetch(`${baseUrl}/regenerate-html`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId: "session-favicon-test", portfolioData: {}, faviconData: png }),
+  });
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.ok(data.html.includes(`<link rel="icon" href="${png}"`));
+});
+
+test("POST /regenerate-html applies personalization (sections, links, font, CTA) without an AI call", async () => {
+  seedSession("session-personalize-test");
+  const res = await fetch(`${baseUrl}/regenerate-html`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sessionId: "session-personalize-test",
+      portfolioData: {},
+      style: "bento",
+      fontPair: "geometric",
+      ctaLabel: "Let's talk",
+      sections: { order: ["projects"], hidden: ["skills"], labels: { projects: "Selected Work" } },
+      // Multipart sends these as JSON strings; the JSON endpoint as objects — both must work.
+      links: JSON.stringify([{ label: "", url: "https://dribbble.com/jane" }]),
+    }),
+  });
+  assert.equal(res.status, 200);
+  const { html } = await res.json();
+  assert.ok(html.includes("grid-auto-flow: dense"), "bento layer applied");
+  assert.ok(html.includes("family=Poppins"), "font pairing applied");
+  assert.ok(html.includes("Let&#39;s talk"), "custom CTA label applied (escaped)");
+  assert.ok(html.includes("Selected Work"));
+  assert.ok(!html.includes('<section id="skills">'));
+  assert.ok(html.indexOf('<section id="projects">') < html.indexOf('<section id="about">'));
+  assert.ok(html.includes("https://dribbble.com/jane") && html.includes("<span>Dribbble</span>"));
+});
+
+test("clampPortfolioEdits leaves list fields alone when the edit doesn't include them", () => {
+  const original = {
+    name: "N", tagline: "T", about: "A", cta: "C", email: null, phone: null, github: null, linkedin: null, website: null,
+    skills: ["JS"], experience: [{ company: "Co", role: "R", period: "P", highlight: "H" }],
+    projects: [{ title: "P", description: "D", tags: [], url: null }], certifications: ["Cert"],
+  };
+  const clamped = app.clampPortfolioEdits({ name: "New" }, original);
+  assert.equal(clamped.name, "New");
+  assert.deepEqual(clamped.skills, ["JS"]);
+  assert.equal(clamped.projects.length, 1);
+  assert.deepEqual(clamped.certifications, ["Cert"]);
+  // An explicit empty array is still an intentional clear.
+  assert.deepEqual(app.clampPortfolioEdits({ skills: [] }, original).skills, []);
+});
+
+test("POST /regenerate-html survives malformed personalization fields instead of 500ing", async () => {
+  seedSession("session-malformed-test");
+  const res = await fetch(`${baseUrl}/regenerate-html`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sessionId: "session-malformed-test", portfolioData: {},
+      title: { not: "a string" }, sections: "{not json", links: 42, fontPair: ["x"], designBrief: { x: 1 },
+    }),
+  });
+  assert.equal(res.status, 200);
 });
 
 test("POST /regenerate-html with an unknown sessionId returns 400", async () => {

@@ -6,7 +6,7 @@ This document tracks what's been fixed toward making Portfol.io a production-gra
 
 ## Executive Summary
 
-**Portfol.io** converts a resume (PDF/DOCX, or pasted text) into a customized, single-page portfolio website using Gemini and deploys it directly to GitHub Pages, plus generates tailored cover letters and an ATS resume review.
+**Portfol.io** converts a resume (PDF/DOCX, or pasted text) into a customized, single-page portfolio website using Groq-hosted AI and deploys it directly to GitHub Pages, plus generates tailored cover letters and an ATS resume review.
 
 Of the five areas originally flagged, security, testing/CI, and pre-deployment UX are now addressed. What's left is mostly open-source project hygiene (license, contributing docs) and a couple of deeper architectural choices that were deliberately deferred rather than left unexamined.
 
@@ -38,17 +38,18 @@ Of the five areas originally flagged, security, testing/CI, and pre-deployment U
   - Two of the three in-memory `Map`s (`pendingDeploys`, the sign-in handoff) were rewritten as short-lived signed JWTs, so they work correctly across separate serverless function instances (e.g. Vercel) with no shared memory needed.
   - `portfolioStore` (the generated HTML/theme/data between "Generate" and "Deploy") remains in-memory — it's too large to fit in a token. This is a known, documented tradeoff (see README → "Deploying to Vercel"), not an oversight. Fixing it fully means external storage (e.g. Vercel KV), which was intentionally not added to keep the project database-free.
 - **Dead Code (`src/deploy.js`)** — ✅ Resolved. Populated, and further extended with `checkDeployTarget` (overwrite protection) and multi-portfolio project-site support.
-- **Gemini API & AI Resilience** — ⚠️ Partial.
-  - ✅ Model is configurable via `GEMINI_MODEL`.
-  - ✅ Structured JSON output (`responseMimeType: "application/json"`) is used for all structured generations.
-  - ❌ Still no automatic retry/backoff on Gemini API failures — a single transient error surfaces straight to the user.
+- **AI API & Resilience** — ✅ Resolved (moved from Gemini to Groq).
+  - ✅ Model is configurable via `GROQ_MODEL`.
+  - ✅ Strict JSON Schema structured outputs (constrained decoding, so responses are guaranteed to match the schema) for all structured generations.
+  - ✅ Automatic retry with exponential backoff on 408/409/429/5xx (built into `groq-sdk`), plus a 20s per-call timeout sized to fit Vercel's function limit.
+- **AI-generated custom CSS** (design-brief feature) — ✅ Hardened. The sanitizer decodes CSS escapes before filtering, blocks every resource-loading function (not just `url()`), and escapes `</` so a `</style>` breakout can't be formed. It was verified in a real browser that the previous regex version could be made to execute script and this one can't. Hiding protected UI is still only blocked on a best-effort basis.
 
 ---
 
 ## 3. Frontend & User Experience (UX/UI) — ✅ Resolved
 
 - ✅ **Interactive Pre-Deployment Customization** — theme/color/title/favicon picker, plus an in-preview "Edit content" panel (name, tagline, about, CTA, skills, experience, projects) that re-renders instantly with no extra AI call.
-- ✅ **Multiple Portfolio Styles** — four layout modes (Minimalism, Glassmorphism, Brutalism, Playful).
+- ✅ **Multiple Portfolio Styles** — four genuinely distinct design layers (`src/styles.js`), each with its own fonts and structure, verified by rendering every style in light and dark mode to screenshots.
 - ⚠️ **Deployment Progress Feedback** — generation has step-by-step progress; the deploy step itself is still a single OAuth redirect round-trip with no granular progress UI.
 - ✅ **Accessibility** — body text and the hero CTA button's text color are computed against the real WCAG contrast formula for whatever background/primary is in play, AI-picked or custom.
 - ❌ **Custom Domains** — no UI or guidance for configuring a `CNAME` on the deployed GitHub Pages site. Still open.
@@ -96,4 +97,4 @@ A few things weren't in the original blueprint at all:
 
 1. **If open-sourcing publicly**: add `LICENSE`, `CONTRIBUTING.md`, and the other §5 items — this is the only fully-open category left.
 2. **If traffic grows**: revisit the `portfolioStore` in-memory tradeoff from §2 with real external storage.
-3. **Nice-to-haves, no urgency**: Gemini retry/backoff, deploy-step progress UI, Docker, lint tooling, CNAME guidance.
+3. **Nice-to-haves, no urgency**: deploy-step progress UI, Docker, lint tooling, CNAME guidance.

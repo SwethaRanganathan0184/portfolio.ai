@@ -17,7 +17,16 @@ const DEFAULT_MODEL = "openai/gpt-oss-120b";
 let _groqClient;
 function getClient() {
   if (!_groqClient) {
-    _groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    _groqClient = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+      // The SDK already retries 408/409/429/5xx with exponential backoff
+      // (maxRetries defaults to 2). What it needs is a timeout well under its
+      // 60s default: on Vercel the whole request is killed at maxDuration
+      // (vercel.json), and /generate makes up to three calls in a row — a
+      // hung call should fail fast with a real error, not an opaque 504.
+      timeout: 20 * 1000,
+      maxRetries: 2,
+    });
   }
   return _groqClient;
 }
@@ -96,6 +105,7 @@ async function generatePortfolioData(resumeText) {
     - experience: list of {company, role, period (start date - end date), highlight (single most impressive achievement in one sentence using strong action verbs)}
     - projects: list of {title, description (2 sentences, focus on what it does and the business/technical impact), tags (tech keywords), url (project url if mentioned, otherwise null, must start with https://)}
     - cta: one short friendly sentence inviting people to get in touch
+    - certifications: list of certifications, licenses, or notable awards named in the resume, each as a short string (e.g. "AWS Certified Solutions Architect – Associate (2023)"). Empty list if none — never invent one.
   `;
 
   const schema = {
@@ -139,10 +149,11 @@ async function generatePortfolioData(resumeText) {
         },
       },
       cta: { type: "string" },
+      certifications: { type: "array", items: { type: "string" } },
     },
     required: [
       "name", "tagline", "about", "email", "linkedin", "github",
-      "website", "phone", "skills", "experience", "projects", "cta",
+      "website", "phone", "skills", "experience", "projects", "cta", "certifications",
     ],
     additionalProperties: false,
   };

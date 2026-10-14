@@ -1,5 +1,3 @@
-const { PORTFOLIO_MARKER } = require("./generator");
-
 // @octokit/rest is a pure ESM package as of v20+, so it can't be loaded with
 // require() from this CommonJS file. Load it lazily via dynamic import()
 // instead (cached after the first call).

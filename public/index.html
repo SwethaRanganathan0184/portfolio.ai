@@ -671,6 +671,57 @@
         line-height: 1.4;
       }
 
+      /* Any author display rule (like the flex below) beats the browser's
+         built-in [hidden] style, so restate it explicitly. */
+      [hidden] { display: none !important; }
+
+      .favicon-row { display: flex; gap: 0.5rem; align-items: stretch; }
+      .favicon-row .text-input { flex: 1; min-width: 0; }
+      .favicon-upload-btn {
+        display: inline-flex; align-items: center; white-space: nowrap;
+        padding: 0 0.85rem; font-size: 0.78rem; font-family: var(--mono);
+        color: var(--textMid); background: var(--surface2);
+        border: 1px solid var(--border2); border-radius: 8px; cursor: pointer;
+      }
+      .favicon-upload-btn:hover { color: var(--text); border-color: var(--primary); }
+      .favicon-preview {
+        display: flex; align-items: center; gap: 0.6rem; margin-top: 0.5rem;
+        padding: 0.4rem 0.6rem; background: var(--bg); border: 1px solid var(--border2); border-radius: 8px;
+      }
+      .favicon-preview img { width: 32px; height: 32px; image-rendering: auto; border-radius: 4px; }
+      .favicon-preview .field-hint { flex: 1; }
+      .favicon-remove { background: none; border: none; color: var(--textLight); cursor: pointer; font-size: 0.9rem; padding: 0.2rem; }
+      .favicon-remove:hover { color: var(--text); }
+      #faviconError, #avatarError { color: #ff7070; }
+
+      select.text-input { cursor: pointer; }
+
+      /* Section editor: one row per section — show/hide, label, move up/down */
+      .section-editor, .link-editor { display: flex; flex-direction: column; gap: 0.4rem; }
+      .section-row, .link-row { display: flex; align-items: center; gap: 0.5rem; }
+      .section-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--primary); flex-shrink: 0; cursor: pointer; }
+      .section-row .text-input, .link-row .text-input { padding: 0.45rem 0.6rem; font-size: 0.8rem; min-width: 0; }
+      .section-row .text-input { flex: 1; }
+      .section-row.is-hidden .text-input { opacity: 0.45; }
+      .link-row .link-label { flex: 0 0 32%; }
+      .link-row .link-url { flex: 1; }
+      .row-btn {
+        flex-shrink: 0; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+        background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px;
+        color: var(--textMid); cursor: pointer; font-size: 0.75rem;
+      }
+      .row-btn:hover:not(:disabled) { color: var(--text); border-color: var(--primary); }
+      .row-btn:disabled { opacity: 0.3; cursor: default; }
+      .add-link-btn { margin-top: 0.4rem; padding: 0.45rem 0.85rem; align-self: flex-start; }
+
+      .restyle-btn {
+        width: 100%; margin-top: 0.6rem; padding: 0.75rem; border-radius: 8px; cursor: pointer;
+        background: var(--surface2); color: var(--text); border: 1px solid var(--border2);
+        font-family: var(--font); font-size: 0.88rem; font-weight: 600;
+      }
+      .restyle-btn:hover:not(:disabled) { border-color: var(--primary); }
+      .restyle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
       @media (max-width: 480px) {
         .theme-grid,
         .color-fields.visible {
@@ -1277,20 +1328,49 @@
               <div class="theme-grid" id="themeGrid">
                 <button type="button" class="theme-option active" data-style="minimalism">
                   Minimalism
-                  <span class="theme-desc">Clean, sharp corners</span>
+                  <span class="theme-desc">Quiet, type-led, monochrome</span>
                 </button>
                 <button type="button" class="theme-option" data-style="glassmorphism">
                   Glassmorphism
-                  <span class="theme-desc">Frosted glass blur</span>
+                  <span class="theme-desc">Frosted panels over color</span>
                 </button>
                 <button type="button" class="theme-option" data-style="brutalism">
                   Brutalism
-                  <span class="theme-desc">Bold borders &amp; shadows</span>
+                  <span class="theme-desc">Raw, heavy type, hard edges</span>
                 </button>
                 <button type="button" class="theme-option" data-style="playful">
                   Playful
-                  <span class="theme-desc">Rounded &amp; bouncy</span>
+                  <span class="theme-desc">Rounded, candy-colored, bouncy</span>
                 </button>
+                <button type="button" class="theme-option" data-style="editorial">
+                  Editorial
+                  <span class="theme-desc">Magazine serifs, drop caps</span>
+                </button>
+                <button type="button" class="theme-option" data-style="terminal">
+                  Terminal
+                  <span class="theme-desc">Shell prompts, mono, CRT</span>
+                </button>
+                <button type="button" class="theme-option" data-style="bento">
+                  Bento
+                  <span class="theme-desc">Rounded tile grid</span>
+                </button>
+                <button type="button" class="theme-option" data-style="neon">
+                  Neon
+                  <span class="theme-desc">Glowing, synthwave grid</span>
+                </button>
+              </div>
+
+              <div class="text-field">
+                <label class="field-label" for="fontPair">Fonts</label>
+                <select id="fontPair" class="text-input">
+                  <option value="">Auto — AI pick + theme fonts</option>
+                  <option value="modern">Modern — Inter</option>
+                  <option value="editorial">Editorial — Playfair + Source Serif</option>
+                  <option value="geometric">Geometric — Poppins + DM Sans</option>
+                  <option value="friendly">Friendly — Nunito</option>
+                  <option value="technical">Technical — JetBrains Mono + IBM Plex</option>
+                  <option value="elegant">Elegant — Cormorant + Lato</option>
+                </select>
               </div>
 
               <div class="color-toggle-row">
@@ -1317,8 +1397,18 @@
                 <input type="text" id="customTitle" class="text-input" maxlength="100" placeholder="Defaults to your name" />
               </div>
               <div class="text-field">
-                <label class="field-label" for="customFavicon">Favicon — emoji or image URL (optional)</label>
-                <input type="text" id="customFavicon" class="text-input" maxlength="300" placeholder="✦" />
+                <label class="field-label" for="customFavicon">Favicon — emoji, image URL, or upload (optional)</label>
+                <div class="favicon-row">
+                  <input type="text" id="customFavicon" class="text-input" maxlength="300" placeholder="✦" />
+                  <label class="favicon-upload-btn" for="faviconFile">Upload image</label>
+                  <input type="file" id="faviconFile" accept="image/png,image/jpeg,image/gif,image/webp,image/x-icon,image/vnd.microsoft.icon" hidden />
+                </div>
+                <div class="favicon-preview" id="faviconPreview" hidden>
+                  <img id="faviconPreviewImg" alt="Uploaded favicon preview" width="32" height="32" />
+                  <span class="field-hint" style="margin-top: 0">Uploaded — resized to 64×64 and embedded in your page</span>
+                  <button type="button" class="favicon-remove" id="faviconRemove" aria-label="Remove uploaded favicon">✕</button>
+                </div>
+                <span class="field-hint" id="faviconError" hidden></span>
               </div>
               <div class="text-field">
                 <label class="field-label" for="designBrief">Describe a specific look you want (optional)</label>
@@ -1330,6 +1420,39 @@
                   placeholder="e.g. &quot;Bohemian, warm brown and terracotta palette, earthy and relaxed, soft rounded edges, hand-crafted feel&quot;"
                 ></textarea>
                 <span class="field-hint">The AI will restyle the page — including the color palette — to match this, on top of the theme above. It can't browse real websites, so describe the vibe/colors/layout rather than naming a URL.</span>
+              </div>
+
+              <div class="text-field">
+                <label class="field-label">Profile photo (optional)</label>
+                <div class="favicon-row">
+                  <label class="favicon-upload-btn" for="avatarFile">Upload photo</label>
+                  <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/gif,image/webp" hidden />
+                  <span class="field-hint" style="margin-top: 0; align-self: center">Shown at the top of your page, cropped to a square</span>
+                </div>
+                <div class="favicon-preview" id="avatarPreview" hidden>
+                  <img id="avatarPreviewImg" alt="Uploaded profile photo preview" width="32" height="32" style="border-radius: 50%; object-fit: cover" />
+                  <span class="field-hint" style="margin-top: 0">Photo added — resized to 320×320 and embedded</span>
+                  <button type="button" class="favicon-remove" id="avatarRemove" aria-label="Remove profile photo">✕</button>
+                </div>
+                <span class="field-hint" id="avatarError" hidden></span>
+              </div>
+
+              <div class="text-field">
+                <label class="field-label" for="ctaLabel">Main button text (optional)</label>
+                <input type="text" id="ctaLabel" class="text-input" maxlength="40" placeholder="Get in touch" />
+              </div>
+
+              <div class="text-field">
+                <label class="field-label">Sections — show, hide, rename, reorder</label>
+                <div class="section-editor" id="sectionEditor"></div>
+                <span class="field-hint">Sections with nothing to show (e.g. no certifications on your resume) are skipped automatically.</span>
+              </div>
+
+              <div class="text-field">
+                <label class="field-label">Extra links (optional, up to 6)</label>
+                <div class="link-editor" id="linkEditor"></div>
+                <button type="button" class="favicon-upload-btn add-link-btn" id="addLinkBtn">+ Add link</button>
+                <span class="field-hint">X/Twitter, YouTube, Instagram, Dribbble, and blog links get their own icon automatically.</span>
               </div>
             </div>
 
@@ -1347,6 +1470,9 @@
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
               Generate Portfolio
+            </button>
+            <button type="button" class="restyle-btn" id="restyleBtn" hidden>
+              Apply design changes without regenerating
             </button>
           </div>
         </div>
@@ -1368,7 +1494,7 @@
           <div class="step-number">02 /</div>
           <div class="step-title">AI does the work</div>
           <div class="step-desc">
-            Gemini reads your resume and rewrites it into compelling portfolio
+            AI reads your resume and rewrites it into compelling portfolio
             copy with a custom color theme.
           </div>
         </div>
@@ -1587,7 +1713,7 @@
 
     <!-- Footer -->
     <footer>
-      <span>Portfol.io — built with Gemini AI</span>
+      <span>Portfol.io — built with Groq AI</span>
       <span>Free forever ✦ Open source</span>
     </footer>
 
@@ -1713,7 +1839,8 @@
       let selectedFile = null;
       let generatedHTML = "";
       let currentPortfolioData = null;
-      let lastGenerateOptions = { style: "minimalism", title: "", favicon: "", colors: null, designBrief: "" };
+      // Filled in by collectDesignOptions() on every generate/restyle.
+      let lastGenerateOptions = {};
 
       // ── Customize panel: theme / colors / title / favicon ──
       let activeStyle = "minimalism";
@@ -1738,6 +1865,272 @@
       useCustomColors.addEventListener("change", () => {
         colorFields.classList.toggle("visible", useCustomColors.checked);
       });
+
+      // ── Favicon upload ──
+      // The image is re-encoded right here in the browser to a small square
+      // PNG and sent as a data: URL, so the generated portfolio stays one
+      // self-contained file (nothing extra to host) and the server only ever
+      // has to validate a single, simple format.
+      const FAVICON_SIZE = 64;
+      const MAX_FAVICON_UPLOAD_BYTES = 5 * 1024 * 1024;
+      let faviconDataUrl = "";
+      const faviconFile = document.getElementById("faviconFile");
+      const faviconPreview = document.getElementById("faviconPreview");
+      const faviconPreviewImg = document.getElementById("faviconPreviewImg");
+      const faviconError = document.getElementById("faviconError");
+      const customFaviconInput = document.getElementById("customFavicon");
+
+      // Decides how an image of any shape gets drawn into a size x size square
+      // canvas. Returns the 8 numbers for the 9-argument form of
+      // ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh): (sx, sy, sw, sh) is
+      // which part of the SOURCE image to take, (dx, dy, dw, dh) is where on
+      // the CANVAS to draw it.
+      //   "cover": crop the source to a centered square and fill the canvas.
+      //   "auto":  cover for near-square images (headshots, app icons — fills
+      //            the tab icon, losing only a sliver), but contain for wide or
+      //            tall ones (wordmark logos) so nothing important is cut off.
+      function fitIntoSquare(imgWidth, imgHeight, size, mode = "auto") {
+        const ratio = imgWidth / imgHeight;
+        const nearSquare = ratio >= 0.8 && ratio <= 1.25;
+        if (mode === "cover" || nearSquare) {
+          const side = Math.min(imgWidth, imgHeight);
+          return {
+            sx: (imgWidth - side) / 2, sy: (imgHeight - side) / 2, sw: side, sh: side,
+            dx: 0, dy: 0, dw: size, dh: size,
+          };
+        }
+        const scale = size / Math.max(imgWidth, imgHeight);
+        const dw = imgWidth * scale;
+        const dh = imgHeight * scale;
+        return { sx: 0, sy: 0, sw: imgWidth, sh: imgHeight, dx: (size - dw) / 2, dy: (size - dh) / 2, dw, dh };
+      }
+
+      function showFaviconError(message) {
+        faviconError.textContent = message;
+        faviconError.hidden = false;
+      }
+
+      function setUploadedFavicon(dataUrl) {
+        faviconDataUrl = dataUrl;
+        faviconPreviewImg.src = dataUrl;
+        faviconPreview.hidden = !dataUrl;
+        faviconError.hidden = true;
+        // The upload takes precedence over the text field (server-side too),
+        // so make that visible rather than leaving a stale emoji/URL looking active.
+        customFaviconInput.disabled = !!dataUrl;
+        customFaviconInput.placeholder = dataUrl ? "Using uploaded image" : "✦";
+      }
+
+      // Shared by the favicon and profile-photo uploads: validates the file,
+      // draws it into a size x size canvas with fitIntoSquare(), and resolves
+      // with a data: URL in the requested format.
+      function imageFileToDataUrl(file, { size, mode, mime, quality }) {
+        return new Promise((resolve, reject) => {
+          if (!file.type.startsWith("image/")) return reject(new Error("That isn't an image file."));
+          if (file.size > MAX_FAVICON_UPLOAD_BYTES) return reject(new Error("That image is over 5MB — try a smaller one."));
+          const objectUrl = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = size;
+            const ctx = canvas.getContext("2d");
+            ctx.imageSmoothingQuality = "high";
+            if (mime === "image/jpeg") {
+              // JPEG has no transparency — paint white first so transparent
+              // PNG uploads don't turn black.
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, size, size);
+            }
+            const { sx, sy, sw, sh, dx, dy, dw, dh } = fitIntoSquare(img.naturalWidth, img.naturalHeight, size, mode);
+            ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+            URL.revokeObjectURL(objectUrl);
+            resolve(canvas.toDataURL(mime, quality));
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error("Couldn't read that image — try a PNG or JPG."));
+          };
+          img.src = objectUrl;
+        });
+      }
+
+      faviconFile.addEventListener("change", async () => {
+        const file = faviconFile.files[0];
+        faviconFile.value = ""; // so picking the same file again still fires "change"
+        if (!file) return;
+        try {
+          setUploadedFavicon(await imageFileToDataUrl(file, { size: FAVICON_SIZE, mode: "auto", mime: "image/png" }));
+        } catch (err) {
+          showFaviconError(err.message);
+        }
+      });
+
+      document.getElementById("faviconRemove").addEventListener("click", () => setUploadedFavicon(""));
+
+      // ── Profile photo upload ── (cropped to a square, sent as a JPEG — a
+      // photo compresses far better as JPEG than PNG)
+      let avatarDataUrl = "";
+      const avatarFile = document.getElementById("avatarFile");
+      const avatarPreview = document.getElementById("avatarPreview");
+      const avatarError = document.getElementById("avatarError");
+
+      function setAvatar(dataUrl) {
+        avatarDataUrl = dataUrl;
+        document.getElementById("avatarPreviewImg").src = dataUrl;
+        avatarPreview.hidden = !dataUrl;
+        avatarError.hidden = true;
+      }
+
+      avatarFile.addEventListener("change", async () => {
+        const file = avatarFile.files[0];
+        avatarFile.value = "";
+        if (!file) return;
+        try {
+          setAvatar(await imageFileToDataUrl(file, { size: 320, mode: "cover", mime: "image/jpeg", quality: 0.85 }));
+        } catch (err) {
+          avatarError.textContent = err.message;
+          avatarError.hidden = false;
+        }
+      });
+
+      document.getElementById("avatarRemove").addEventListener("click", () => setAvatar(""));
+
+      // ── Section editor ──
+      // One row per section: visible checkbox, editable label, move up/down.
+      // State is an ordered array; the server re-validates everything.
+      const SECTION_DEFAULT_LABELS = {
+        about: "About", skills: "Skills", experience: "Experience",
+        projects: "Projects", certifications: "Certifications", contact: "Contact",
+      };
+      let sectionState = Object.keys(SECTION_DEFAULT_LABELS).map((key) => ({ key, visible: true, label: "" }));
+      const sectionEditor = document.getElementById("sectionEditor");
+
+      function renderSectionEditor() {
+        sectionEditor.innerHTML = "";
+        sectionState.forEach((section, index) => {
+          const row = document.createElement("div");
+          row.className = "section-row" + (section.visible ? "" : " is-hidden");
+          row.innerHTML = `
+            <input type="checkbox" ${section.visible ? "checked" : ""} aria-label="Show ${SECTION_DEFAULT_LABELS[section.key]} section" />
+            <input type="text" class="text-input" maxlength="40" placeholder="${SECTION_DEFAULT_LABELS[section.key]}" aria-label="${SECTION_DEFAULT_LABELS[section.key]} section label" />
+            <button type="button" class="row-btn" data-dir="-1" aria-label="Move up" ${index === 0 ? "disabled" : ""}>▲</button>
+            <button type="button" class="row-btn" data-dir="1" aria-label="Move down" ${index === sectionState.length - 1 ? "disabled" : ""}>▼</button>
+          `;
+          // Set the label via .value (never via innerHTML) so user text can't inject markup.
+          const labelInput = row.querySelector(".text-input");
+          labelInput.value = section.label;
+          labelInput.addEventListener("input", () => { section.label = labelInput.value; });
+          row.querySelector('input[type="checkbox"]').addEventListener("change", (e) => {
+            section.visible = e.target.checked;
+            row.classList.toggle("is-hidden", !section.visible);
+          });
+          row.querySelectorAll(".row-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const target = index + Number(btn.dataset.dir);
+              [sectionState[index], sectionState[target]] = [sectionState[target], sectionState[index]];
+              renderSectionEditor();
+            });
+          });
+          sectionEditor.appendChild(row);
+        });
+      }
+      renderSectionEditor();
+
+      // ── Extra links editor ──
+      const MAX_LINKS = 6;
+      let linkState = [];
+      const linkEditor = document.getElementById("linkEditor");
+      const addLinkBtn = document.getElementById("addLinkBtn");
+
+      function renderLinkEditor() {
+        linkEditor.innerHTML = "";
+        linkState.forEach((link, index) => {
+          const row = document.createElement("div");
+          row.className = "link-row";
+          row.innerHTML = `
+            <input type="text" class="text-input link-label" maxlength="30" placeholder="Label (optional)" aria-label="Link label" />
+            <input type="url" class="text-input link-url" maxlength="300" placeholder="https://…" aria-label="Link URL" />
+            <button type="button" class="row-btn" aria-label="Remove link">✕</button>
+          `;
+          const [labelInput, urlInput] = row.querySelectorAll(".text-input");
+          labelInput.value = link.label;
+          urlInput.value = link.url;
+          labelInput.addEventListener("input", () => { link.label = labelInput.value; });
+          urlInput.addEventListener("input", () => { link.url = urlInput.value; });
+          row.querySelector(".row-btn").addEventListener("click", () => {
+            linkState.splice(index, 1);
+            renderLinkEditor();
+          });
+          linkEditor.appendChild(row);
+        });
+        addLinkBtn.hidden = linkState.length >= MAX_LINKS;
+      }
+      addLinkBtn.addEventListener("click", () => {
+        linkState.push({ label: "", url: "" });
+        renderLinkEditor();
+        linkEditor.lastElementChild?.querySelector(".link-url")?.focus();
+      });
+      renderLinkEditor();
+
+      // ── "Apply design changes" ── re-renders the current portfolio with the
+      // panel's latest settings via /regenerate-html. The extracted resume
+      // data and AI theme are cached server-side, so this is instant and
+      // free — unless the design brief changed, which needs one AI pass.
+      const restyleBtn = document.getElementById("restyleBtn");
+      restyleBtn.addEventListener("click", async () => {
+        if (!currentSessionId || !currentPortfolioData) return;
+        restyleBtn.disabled = true;
+        errorBox.classList.remove("visible");
+        try {
+          const options = collectDesignOptions();
+          const payload = { ...options, sessionId: currentSessionId, portfolioData: currentPortfolioData };
+          if (!payload.colors) delete payload.colors;
+          const res = await fetch("/regenerate-html", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Couldn't apply the design changes.");
+          lastGenerateOptions = options;
+          generatedHTML = data.html;
+          showPreview(data.name, data.html, currentSessionId);
+        } catch (err) {
+          errorBox.textContent = "✗ " + err.message;
+          errorBox.classList.add("visible");
+        } finally {
+          restyleBtn.disabled = false;
+        }
+      });
+
+      // Every design/personalization setting in the panel, in the shape the
+      // server expects. Used by Generate, "Apply design changes" and the
+      // edit panel's "Apply changes", so all three stay consistent.
+      function collectDesignOptions() {
+        return {
+          style: activeStyle,
+          title: document.getElementById("customTitle").value.trim(),
+          favicon: document.getElementById("customFavicon").value.trim(),
+          faviconData: faviconDataUrl,
+          avatarData: avatarDataUrl,
+          fontPair: document.getElementById("fontPair").value,
+          ctaLabel: document.getElementById("ctaLabel").value.trim(),
+          sections: {
+            order: sectionState.map((s) => s.key),
+            hidden: sectionState.filter((s) => !s.visible).map((s) => s.key),
+            labels: Object.fromEntries(sectionState.filter((s) => s.label.trim()).map((s) => [s.key, s.label.trim()])),
+          },
+          links: linkState.filter((l) => l.url.trim()).map((l) => ({ label: l.label.trim(), url: l.url.trim() })),
+          colors: useCustomColors.checked
+            ? {
+                primary: document.getElementById("colorPrimary").value,
+                accent: document.getElementById("colorAccent").value,
+                background: document.getElementById("colorBackground").value,
+              }
+            : null,
+          designBrief: document.getElementById("designBrief").value.trim(),
+        };
+      }
 
       // ── File selection ──
       fileInput.addEventListener("change", (e) => {
@@ -1828,29 +2221,11 @@
           formData.append("resumeText", resumeTextInput.value.trim());
         }
 
-        // Append customizations
-        lastGenerateOptions = {
-          style: activeStyle,
-          title: document.getElementById("customTitle").value.trim(),
-          favicon: document.getElementById("customFavicon").value.trim(),
-          colors: useCustomColors.checked
-            ? {
-                primary: document.getElementById("colorPrimary").value,
-                accent: document.getElementById("colorAccent").value,
-                background: document.getElementById("colorBackground").value,
-              }
-            : null,
-          designBrief: document.getElementById("designBrief").value.trim(),
-        };
-
-        formData.append("style", lastGenerateOptions.style);
-        formData.append("title", lastGenerateOptions.title);
-        formData.append("favicon", lastGenerateOptions.favicon);
-        if (lastGenerateOptions.colors) {
-          formData.append("colors", JSON.stringify(lastGenerateOptions.colors));
-        }
-        if (lastGenerateOptions.designBrief) {
-          formData.append("designBrief", lastGenerateOptions.designBrief);
+        // Append customizations. Objects travel as JSON strings in multipart.
+        lastGenerateOptions = collectDesignOptions();
+        for (const [key, value] of Object.entries(lastGenerateOptions)) {
+          if (value === null || value === "") continue;
+          formData.append(key, typeof value === "object" ? JSON.stringify(value) : value);
         }
 
         try {
@@ -1897,6 +2272,9 @@
 
           await delay(500);
           showPreview(data.name, data.html, data.sessionId);
+          // From now on, theme/font/section/link changes can be re-applied
+          // to this portfolio without re-reading the resume or calling the AI.
+          restyleBtn.hidden = false;
         } catch (err) {
           errorBox.textContent =
             "✗ " + (err.message || "Something went wrong. Please try again.");
@@ -2076,15 +2454,9 @@
 
         try {
           const edited = collectEditedPortfolioData();
-          const payload = {
-            sessionId: currentSessionId,
-            portfolioData: edited,
-            style: lastGenerateOptions.style,
-            title: lastGenerateOptions.title,
-            favicon: lastGenerateOptions.favicon,
-          };
-          if (lastGenerateOptions.colors) payload.colors = lastGenerateOptions.colors;
-          payload.designBrief = lastGenerateOptions.designBrief || "";
+          // Content edits keep the design settings from the last generate/restyle.
+          const payload = { ...lastGenerateOptions, sessionId: currentSessionId, portfolioData: edited };
+          if (!payload.colors) delete payload.colors;
 
           const res = await fetch("/regenerate-html", {
             method: "POST",
