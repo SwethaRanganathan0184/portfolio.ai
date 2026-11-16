@@ -1247,7 +1247,7 @@
                 </svg>
               </div>
               <div class="drop-title">Drop your resume here</div>
-              <div class="drop-sub">PDF or DOCX · Max 10MB</div>
+              <div class="drop-sub">PDF or DOCX · Max 4MB</div>
             </div>
 
             <div class="file-selected" id="fileSelected">
@@ -1789,7 +1789,14 @@
       </div>
 
       <div class="modal-frame-wrap">
-        <iframe id="previewFrame" title="Portfolio Preview"></iframe>
+        <!-- Sandboxed WITHOUT allow-same-origin: a srcdoc iframe otherwise
+             shares this page's origin, so any script that slipped into a
+             generated portfolio could read the signed-in GitHub token from
+             localStorage. The portfolio's own scripts still run
+             (allow-scripts), its links still open in a new tab (allow-popups
+             + escape-sandbox so those tabs behave normally) and its "Save as
+             PDF" button still works (allow-modals, needed for print()). -->
+        <iframe id="previewFrame" title="Portfolio Preview" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals"></iframe>
       </div>
       <div class="deploy-hint">
         <strong>Deploy free →</strong>
@@ -1835,6 +1842,10 @@
       const modalName = document.getElementById("modalName");
       const downloadBtn = document.getElementById("downloadBtn");
       const closeModal = document.getElementById("closeModal");
+
+      // Keep in sync with MAX_RESUME_BYTES in src/app.js (which explains why
+      // it's 4MB: the hosting platform caps request bodies at 4.5MB).
+      const MAX_RESUME_UPLOAD_BYTES = 4 * 1024 * 1024;
 
       let selectedFile = null;
       let generatedHTML = "";
@@ -2090,7 +2101,7 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok) throw new Error(data.error || "Couldn't apply the design changes.");
           lastGenerateOptions = options;
           generatedHTML = data.html;
@@ -2138,6 +2149,17 @@
       });
 
       function selectFile(file) {
+        // Checked here, before any upload, so the user gets an instant and
+        // specific message rather than waiting for the server to refuse it.
+        if (file.size > MAX_RESUME_UPLOAD_BYTES) {
+          selectedFile = null;
+          fileInput.value = "";
+          fileSelected.classList.remove("visible");
+          errorBox.textContent = "✗ That file is over 4MB. Try a smaller export of your resume, or paste its text instead.";
+          errorBox.classList.add("visible");
+          updateGenerateBtnState();
+          return;
+        }
         selectedFile = file;
         fileName.textContent = file.name;
         fileSelected.classList.add("visible");
@@ -2243,7 +2265,7 @@
           setStep(3);
           await delay(300);
 
-          const data = await res.json();
+          const data = await readJSON(res);
 
           if (!res.ok) throw new Error(data.error || "Generation failed");
 
@@ -2289,6 +2311,30 @@
 
       function delay(ms) {
         return new Promise((r) => setTimeout(r, ms));
+      }
+
+      // Reads a response as JSON without assuming it IS JSON. Our own API
+      // always answers in JSON, but the hosting platform can answer before
+      // the request ever reaches it — e.g. Vercel's "payload too large" or a
+      // function timeout — with an HTML or plain-text page. Parsing that
+      // directly as JSON throws "Unexpected token '<'...", which is what
+      // users used to see. Throws an Error with a readable message instead;
+      // every caller already shows err.message from its catch block.
+      async function readJSON(res) {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          // fall through to a message based on the status code
+        }
+        if (res.status === 413) throw new Error("That upload is too large for the server. Please use a file under 4MB.");
+        if (res.status === 429) throw new Error("Too many requests. Please wait a few minutes and try again.");
+        if ([502, 503, 504].includes(res.status)) throw new Error("The server took too long to respond. Please try again in a minute.");
+        throw new Error(
+          res.ok
+            ? "The server sent an unexpected response. Please try again."
+            : `The request failed (HTTP ${res.status}). Please try again.`
+        );
       }
 
       // ── Preview ──
@@ -2464,7 +2510,7 @@
             body: JSON.stringify(payload),
           });
 
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok) throw new Error(data.error || "Failed to update preview.");
 
           generatedHTML = data.html;
@@ -2541,7 +2587,7 @@
             })
           });
 
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok) throw new Error(data.error || "Failed to generate cover letter.");
 
           clStep2.classList.remove("active");
@@ -2640,7 +2686,7 @@
             body: JSON.stringify({ resumeText: resume.resumeText }),
           });
 
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok) throw new Error(data.error || "Failed to review resume.");
 
           rrStep2.classList.remove("active");
@@ -2902,11 +2948,19 @@
         };
 
         try {
-          await fetch("/profile/sync", {
+          const res = await fetch("/profile/sync", {
             method: "PUT",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify(payload),
           });
+          // 401 = GitHub no longer accepts this token (revoked or expired).
+          // Forget it so the UI stops claiming to be signed in and syncing
+          // when every sync is in fact being rejected.
+          if (res.status === 401) {
+            localStorage.removeItem(PROFILE_TOKEN_KEY);
+            localStorage.removeItem(PROFILE_USERNAME_KEY);
+            updateSyncUI();
+          }
         } catch (e) {
           // Best-effort background sync — a failure here shouldn't interrupt the user.
         }
@@ -2922,13 +2976,14 @@
       async function completeProfileSignIn(handoffCode) {
         try {
           const res = await fetch(`/auth/profile/session-token?code=${encodeURIComponent(handoffCode)}`);
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok || !data.accessToken) throw new Error(data.error || "Sign-in failed.");
 
           localStorage.setItem(PROFILE_TOKEN_KEY, data.accessToken);
 
           const syncRes = await fetch("/profile/sync", { headers: { "Authorization": `Bearer ${data.accessToken}` } });
-          const syncData = await syncRes.json();
+          // A failed first sync shouldn't undo a sign-in that already succeeded.
+          const syncData = await readJSON(syncRes).catch(() => ({}));
           if (syncRes.ok) {
             if (syncData.username) localStorage.setItem(PROFILE_USERNAME_KEY, syncData.username);
             mergeRemoteProfile(syncData.profile);
@@ -3014,7 +3069,9 @@
 
       if (params.get('error')) {
         const msg = params.get('error');
-        alert('Deploy failed: ' + msg);
+        // Both the deploy and the sign-in flow report failures through this
+        // parameter, so the wording can't assume which one it was.
+        alert('GitHub step failed: ' + msg);
         window.history.replaceState({}, '', '/');
       }
 

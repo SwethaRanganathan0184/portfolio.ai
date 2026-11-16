@@ -39,7 +39,7 @@ Portfol.io is an all-in-one AI companion that turns your resume into a beautiful
 - **GitHub API Deployment** — GitHub OAuth + `@octokit/rest`
 - **Frontend** — Vanilla HTML, CSS, JavaScript (tabs, localStorage sync)
 - **Scroller & Animation** — Lenis + GSAP (dynamic motion control)
-- **Security** — `express-rate-limit`, JWT state CSRF signatures (random per-process secret if `JWT_SECRET` isn't set), down-scoped OAuth scopes (`public_repo` for deploy, `gist` — nothing else — for the optional profile sync sign-in), file filters, consistent HTML-escaping and URL-scheme validation (`http(s)://` only) across all user- and AI-supplied content injected into the generated portfolio, configurable CORS origin restriction
+- **Security** — `express-rate-limit`, signed JWT OAuth state bound to the initiating browser by an HttpOnly cookie (random per-process secret if `JWT_SECRET` isn't set), GitHub tokens AES-256-GCM encrypted whenever they pass through a URL, a sandboxed preview iframe, length caps on all text sent to the AI, down-scoped OAuth scopes (`public_repo` for deploy, `gist` — nothing else — for the optional profile sync sign-in), file filters, consistent HTML-escaping and URL-scheme validation (`http(s)://` only) across all user- and AI-supplied content injected into the generated portfolio, configurable CORS origin restriction
 - **Testing** — Node's built-in test runner (`node --test`, no extra dependency), GitHub Actions CI on every push/PR
 
 
@@ -90,9 +90,10 @@ GITHUB_CLIENT_SECRET=your_github_client_secret_here
 # restarts and work across multiple instances.
 JWT_SECRET=a_long_random_string
 
-# Optional — restricts which origins may call the API in production.
-# Comma-separated list. Omit to allow all origins (fine for local dev).
-CORS_ORIGIN=https://portfol.io
+# Optional — only needed if a site on ANOTHER origin must call this API.
+# Comma-separated list. When omitted: local dev allows all origins, while
+# production allows same-origin only.
+# CORS_ORIGIN=https://your-other-site.example
 ```
 
 ### 5. Run the app
@@ -117,7 +118,15 @@ Whichever host you use, update your GitHub OAuth App settings first:
 - Homepage URL → your live domain e.g. `https://portfol.io`
 - Authorization callback URL → `https://portfol.io/auth/callback`
 
-Then add your environment variables in the hosting platform's dashboard instead of a `.env` file. In particular, set `JWT_SECRET` (so OAuth deploy/sign-in links keep working across restarts and multiple instances) and `CORS_ORIGIN` (comma-separated list of allowed origins — omitting it allows all origins, which is fine for local dev but not recommended in production).
+Then add your environment variables in the hosting platform's dashboard instead of a `.env` file. In particular, set `JWT_SECRET` (so OAuth deploy/sign-in links keep working across restarts and multiple instances). `CORS_ORIGIN` is only needed if a site on a *different* origin has to call this API (comma-separated list): when it's omitted, local development allows all origins, while production (Vercel, or `NODE_ENV=production`) sends no CORS headers at all — same-origin only, which is everything the bundled frontend needs.
+
+Once it's deployed, open `/healthz` on your domain. It reports whether each piece of configuration is present — never the values — so you can confirm the deploy is wired up before trying a real generation:
+
+```json
+{ "ok": true, "ai": true, "githubOAuth": true, "jwtSecret": true, "corsOrigin": "same-origin" }
+```
+
+Any `false` there means that environment variable is missing or still set to its `.env.example` placeholder.
 
 ### Deploying to Vercel
 
@@ -127,10 +136,11 @@ This repo is already set up for it — `api/index.js` re-exports the Express app
 2. In the Vercel project's **Settings → Environment Variables**, add: `GROQ_API_KEY`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and **`JWT_SECRET`** (see the callout below — this one isn't optional here). `CORS_ORIGIN` and `GROQ_MODEL` are optional as elsewhere.
 3. Once you have your `*.vercel.app` URL (or a custom domain), update the GitHub OAuth App's Homepage URL and Authorization callback URL to point at it (`https://your-app.vercel.app/auth/callback`), per the section above.
 4. Redeploy so the new callback URL and env vars take effect.
+5. Open `https://your-app.vercel.app/healthz` and check every value is `true`, then run one real generate → deploy to confirm the whole path.
 
 **Why `JWT_SECRET` is required, not just recommended, here:** Vercel serverless functions are stateless and short-lived — a request can land on a different function instance than the one before it, with no memory shared between them. If `JWT_SECRET` is left unset, this app falls back to a random secret generated fresh per instance; a state token signed by one instance would then fail to verify on another, causing OAuth deploys and sign-ins to fail intermittently and confusingly. Set it explicitly and every instance agrees on the same secret.
 
-Because of that same statelessness, two flows in this app that used to hold data in a plain in-memory `Map` — the deploy overwrite-confirmation step and the "Sign in with GitHub" handoff — were rewritten as short-lived signed JWTs instead, specifically so they don't depend on hitting the same server instance twice. One piece of state remains genuinely in-memory: `portfolioStore`, which holds the full generated HTML between "Generate" and "Deploy"/"Apply changes" (too large to fit in a token). In practice this works fine for typical single-user usage — Vercel tends to keep a function instance warm for the short window between those actions — but it isn't *guaranteed*, and a cold start or concurrent traffic can occasionally produce a "Portfolio session expired. Please generate again." error even on a fresh session. If that turns out to matter for your traffic, the fix is to move that store to an external cache (e.g. Vercel KV) — a small, well-contained change if you ever want it, but not something this project takes on by default given the "no database" design goal.
+Because of that same statelessness, two flows in this app that used to hold data in a plain in-memory `Map` — the deploy overwrite-confirmation step and the "Sign in with GitHub" handoff — were rewritten as short-lived signed JWTs instead, specifically so they don't depend on hitting the same server instance twice. (Those JWTs travel in a URL, and a JWT is signed but not encrypted, so the GitHub token inside is separately encrypted with a key derived from `JWT_SECRET`, and each one is redeemable only by the browser it was issued to — both still fully stateless.) The same caveat applies to rate limiting: `express-rate-limit` counts per function instance, so the limits are looser on serverless than the configured numbers suggest unless you give it a shared store. One piece of state remains genuinely in-memory: `portfolioStore`, which holds the full generated HTML between "Generate" and "Deploy"/"Apply changes" (too large to fit in a token). In practice this works fine for typical single-user usage — Vercel tends to keep a function instance warm for the short window between those actions — but it isn't *guaranteed*, and a cold start or concurrent traffic can occasionally produce a "Portfolio session expired. Please generate again." error even on a fresh session. If that turns out to matter for your traffic, the fix is to move that store to an external cache (e.g. Vercel KV) — a small, well-contained change if you ever want it, but not something this project takes on by default given the "no database" design goal.
 
 ---
 
@@ -186,7 +196,12 @@ If neither tradeoff sits well with you, just don't sign in — everything works 
 - Deploying always targets `username.github.io` unless you give it a project name in the deploy dialog — that reserved repo name is GitHub's one-per-account "user site," so it's also the only URL a plain deploy will ever reuse
 - If `username.github.io` already has unrelated content when you deploy (e.g. an existing personal site), you'll be asked to confirm before it's overwritten
 - Editing content in the preview and clicking "Apply changes" doesn't call the AI again — it's a free, instant re-render using the same extracted data. The one exception is changing the design brief, which triggers a new AI styling pass and counts toward the same rate limit as generating a portfolio
-- AI calls time out after 20s and are retried automatically on rate-limit/server errors (built into `groq-sdk`); the Vercel function limit is set to 60s in `vercel.json` so a full generation (up to three AI calls) fits
+- AI calls time out after 20s and are retried automatically on rate-limit/server errors (built into `groq-sdk`). Because retries can stack across the up-to-three calls a generation makes, each request's AI work also shares one overall 50s deadline — under the 60s Vercel function limit set in `vercel.json` — so a slow AI day produces a readable "taking too long" error rather than a platform timeout page
+- Resume uploads are capped at 4MB. Vercel rejects any request body over 4.5MB before it reaches the app, so the limit sits below that with room for the profile photo and favicon sent in the same request; the browser checks the size before uploading. Larger resumes can be pasted as text instead
+- Scanned (image-only) PDFs contain no extractable text, so they're rejected with a message suggesting pasting the text instead, rather than being sent to the AI
+- The per-IP rate limits (10 AI generations and 30 other API requests per 15 minutes) can be changed with `RATE_LIMIT_GENERATE_MAX` and `RATE_LIMIT_API_MAX`
+- Error responses never include raw upstream error text; the details go to the server log and the user gets a plain explanation (rate-limited, not configured, file unreadable, and so on)
+- Deploying to GitHub Pages and signing in both need cookies enabled: a small HttpOnly cookie identifies the browser that started an OAuth flow, and the flow can only be finished (and a portfolio only deployed) from that same browser
 
 ---
 

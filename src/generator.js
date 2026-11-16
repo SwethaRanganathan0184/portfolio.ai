@@ -1015,7 +1015,12 @@ ${sectionsHTML}
     const toggle = document.getElementById('themeToggle');
     const html = document.documentElement;
 
-    const saved = localStorage.getItem('theme');
+    // Storage access throws (not just returns null) when the page runs
+    // somewhere storage is blocked — a sandboxed preview iframe, or a browser
+    // with site data disabled. An uncaught throw here would stop this whole
+    // script, taking the theme toggle and scroll animations down with it.
+    let saved = null;
+    try { saved = localStorage.getItem('theme'); } catch (e) {}
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (saved) {
       html.setAttribute('data-theme', saved);
@@ -1027,7 +1032,7 @@ ${sectionsHTML}
       const current = html.getAttribute('data-theme');
       const next = current === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
+      try { localStorage.setItem('theme', next); } catch (e) {}
     });
 
     // ── 1b. Save as PDF (browser print → "Save as PDF" destination) ──

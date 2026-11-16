@@ -17,6 +17,16 @@ const DEFAULT_MODEL = "openai/gpt-oss-120b";
 let _groqClient;
 function getClient() {
   if (!_groqClient) {
+    // Checked here rather than left to the SDK so callers get a stable
+    // `code` to recognise (app.js turns it into a clear "not set up" reply)
+    // instead of having to match on the SDK's error wording. The placeholder
+    // from .env.example counts as missing — it would only earn a 401.
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey || /^your_.*_here$/i.test(apiKey)) {
+      const err = new Error("GROQ_API_KEY is not set.");
+      err.code = "AI_NOT_CONFIGURED";
+      throw err;
+    }
     _groqClient = new Groq({
       apiKey: process.env.GROQ_API_KEY,
       // The SDK already retries 408/409/429/5xx with exponential backoff

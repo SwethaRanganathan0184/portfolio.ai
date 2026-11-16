@@ -23,3 +23,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+
+  # Separate job so a newly published advisory shows up as its own red check
+  # instead of masking whether the tests themselves pass. Production
+  # dependencies only, high severity and above — the ones worth blocking on.
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high

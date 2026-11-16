@@ -42,6 +42,32 @@ test("the client's overwrite-confirm token check accepts a real server-issued to
   assert.ok(!shapeCheck.test("<script>"));
 });
 
+test("the preview iframe is sandboxed away from this page's origin", () => {
+  // Generated HTML is rendered via srcdoc, which shares the parent's origin
+  // (and so its localStorage, where the GitHub token lives) unless sandboxed
+  // WITHOUT allow-same-origin.
+  const sandbox = (html.match(/<iframe id="previewFrame"[^>]*\ssandbox="([^"]*)"/) || [])[1];
+  assert.ok(sandbox, "previewFrame has no sandbox attribute");
+  const flags = sandbox.split(/\s+/);
+  assert.ok(flags.includes("allow-scripts"), "the portfolio's own scripts need to run");
+  assert.ok(!flags.includes("allow-same-origin"));
+  assert.ok(!flags.includes("allow-top-navigation"));
+});
+
+test("the client-side resume size limit matches the server's", () => {
+  const source = (script.match(/const MAX_RESUME_UPLOAD_BYTES = ([0-9*\s]+);/) || [])[1];
+  assert.ok(source, "couldn't find MAX_RESUME_UPLOAD_BYTES in index.html");
+  const clientLimit = source.split("*").reduce((product, n) => product * Number(n), 1);
+  assert.equal(clientLimit, require("../src/app").MAX_RESUME_BYTES);
+});
+
+test("no API response is parsed with a bare res.json()", () => {
+  // Platform-level errors (payload too large, timeouts) aren't JSON; every
+  // call must go through readJSON(), which turns those into readable errors.
+  assert.ok(script.includes("async function readJSON(res)"));
+  assert.deepEqual(script.match(/\b\w+\.json\(\)/g) || [], []);
+});
+
 test("every theme offered in the picker has a matching style layer", () => {
   const { STYLE_NAMES } = require("../src/styles");
   const offered = [...html.matchAll(/data-style="([^"]+)"/g)].map((m) => m[1]);
