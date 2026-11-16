@@ -201,6 +201,8 @@ If neither tradeoff sits well with you, just don't sign in — everything works 
 - Scanned (image-only) PDFs contain no extractable text, so they're rejected with a message suggesting pasting the text instead, rather than being sent to the AI
 - The per-IP rate limits (10 AI generations and 30 other API requests per 15 minutes) can be changed with `RATE_LIMIT_GENERATE_MAX` and `RATE_LIMIT_API_MAX`
 - Error responses never include raw upstream error text; the details go to the server log and the user gets a plain explanation (rate-limited, not configured, file unreadable, and so on)
+- After a successful deploy the app continues straight into the profile-sync sign-in, so the Profile page shows you as signed in rather than asking you to log in to GitHub a second time. They remain two separate authorizations by design — the deploy token (which can write to public repos) is used once on the server and never stored, while the token kept in the browser for sync can only touch gists — so GitHub asks once for the extra gist permission. Cancelling it, or signing out, is remembered: later deploys won't ask again, and the Sign in button on the Profile page still works
+- Signing in merges the synced profile with whatever the browser already has (portfolios by URL, cover letters by ID) instead of replacing it, so nothing local is lost
 - Deploying to GitHub Pages and signing in both need cookies enabled: a small HttpOnly cookie identifies the browser that started an OAuth flow, and the flow can only be finished (and a portfolio only deployed) from that same browser
 
 ---

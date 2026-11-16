@@ -749,6 +749,17 @@ app.get("/auth/callback", apiLimiter, requireGitHubOAuth, async (req, res) => {
       throw new Error("This GitHub sign-in was started in a different browser. Please start again from this one.");
     }
 
+    // GitHub also calls back when the user says no (?error=access_denied)
+    // or something else went wrong on its side — with no code to exchange.
+    // Say so plainly instead of sending GitHub a request that can't succeed.
+    if (req.query.error || typeof code !== "string" || !code) {
+      throw new Error(
+        req.query.error === "access_denied"
+          ? "GitHub authorization was cancelled."
+          : "GitHub didn't complete the authorization. Please try again."
+      );
+    }
+
     // Exchange authorization code for access token
     const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
       method: "POST",

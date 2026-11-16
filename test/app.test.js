@@ -247,6 +247,28 @@ test("GET /auth/callback rejects a state that a different browser started, befor
   assert.match(decodeURIComponent(res.headers.get("location")), /^\/\?error=.*different browser/);
 });
 
+test("GET /auth/callback reports a cancelled authorization plainly, without calling GitHub", async () => {
+  // What GitHub sends when the user clicks "Cancel" on the consent screen.
+  const state = jwt.sign({ purpose: "profile-signin", b: app.browserHash(BROWSER_A) }, app.JWT_SECRET, { expiresIn: "15m" });
+  const realFetch = globalThis.fetch;
+  let outboundCalls = 0;
+  globalThis.fetch = (url, ...rest) => {
+    if (!String(url).startsWith(baseUrl)) outboundCalls++;
+    return realFetch(url, ...rest);
+  };
+  try {
+    const res = await fetch(`${baseUrl}/auth/callback?error=access_denied&state=${encodeURIComponent(state)}`, {
+      redirect: "manual",
+      headers: asBrowser(BROWSER_A),
+    });
+    assert.equal(res.status, 302);
+    assert.match(decodeURIComponent(res.headers.get("location")), /^\/\?error=GitHub authorization was cancelled\.$/);
+    assert.equal(outboundCalls, 0, "no request should have gone to GitHub");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
 test("a first-time visitor is given an HttpOnly, SameSite=Lax browser cookie", async () => {
   const res = await fetch(`${baseUrl}/auth/profile/session-token?code=bogus`);
   const cookie = res.headers.get("set-cookie") || "";
