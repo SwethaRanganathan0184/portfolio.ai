@@ -158,11 +158,25 @@ async function deployToGitHubPages({ accessToken, html, portfolioName, repoSlug 
   });
 
   // 6. Enable GitHub Pages on the repository
+  // The commit above landed on the repo's DEFAULT branch, which isn't always
+  // "main" — an account can be set to name new repos' default branch anything
+  // (older ones still use "master"), and an existing repo keeps whatever it
+  // had. Pointing Pages at a branch that doesn't exist fails, and that
+  // failure is swallowed below, so the deploy would "succeed" with a link
+  // that never goes live. Ask GitHub which branch it actually is.
+  let pagesBranch = "main";
+  try {
+    const { data: repo } = await octokit.rest.repos.get({ owner: username, repo: repoName });
+    if (repo.default_branch) pagesBranch = repo.default_branch;
+  } catch (e) {
+    // Couldn't look it up — "main" is still the most likely answer.
+  }
+
   try {
     await octokit.rest.repos.createPagesSite({
       owner: username,
       repo: repoName,
-      source: { branch: "main", path: "/" },
+      source: { branch: pagesBranch, path: "/" },
     });
   } catch (e) {
     // If Pages is already enabled, GitHub might return an error, which we can safely ignore

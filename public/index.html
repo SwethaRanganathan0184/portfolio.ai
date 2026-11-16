@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Portfol.io — AI Portfolio Generator</title>
+    <!-- The .ico is listed first as the fallback; browsers that understand
+         SVG favicons pick the vector one, which stays sharp at any size. -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#080810" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -1146,6 +1152,30 @@
         font-size: 0.75rem;
         color: var(--textLight);
         font-family: var(--mono);
+        /* Three items now: let them wrap instead of squeezing on narrow screens. */
+        flex-wrap: wrap;
+        gap: 0.6rem 1.5rem;
+      }
+
+      footer a {
+        color: var(--textMid);
+        text-decoration: none;
+        border-bottom: 1px solid var(--border2);
+        transition: color 0.2s, border-color 0.2s;
+      }
+
+      footer a:hover,
+      footer a:focus-visible {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+
+      @media (max-width: 640px) {
+        footer {
+          flex-direction: column;
+          text-align: center;
+          padding: 1.5rem 1.25rem;
+        }
       }
 
       /* ── Animations ── */
@@ -1247,7 +1277,7 @@
                 </svg>
               </div>
               <div class="drop-title">Drop your resume here</div>
-              <div class="drop-sub">PDF or DOCX · Max 10MB</div>
+              <div class="drop-sub">PDF or DOCX · Max 4MB</div>
             </div>
 
             <div class="file-selected" id="fileSelected">
@@ -1714,6 +1744,12 @@
     <!-- Footer -->
     <footer>
       <span>Portfol.io — built with Groq AI</span>
+      <span>
+        Built by
+        <a href="https://github.com/SwethaRanganathan0184" target="_blank" rel="noopener noreferrer">Swetha</a>
+        and
+        <a href="https://github.com/nh-44" target="_blank" rel="noopener noreferrer">Naveen</a>
+      </span>
       <span>Free forever ✦ Open source</span>
     </footer>
 
@@ -1789,7 +1825,14 @@
       </div>
 
       <div class="modal-frame-wrap">
-        <iframe id="previewFrame" title="Portfolio Preview"></iframe>
+        <!-- Sandboxed WITHOUT allow-same-origin: a srcdoc iframe otherwise
+             shares this page's origin, so any script that slipped into a
+             generated portfolio could read the signed-in GitHub token from
+             localStorage. The portfolio's own scripts still run
+             (allow-scripts), its links still open in a new tab (allow-popups
+             + escape-sandbox so those tabs behave normally) and its "Save as
+             PDF" button still works (allow-modals, needed for print()). -->
+        <iframe id="previewFrame" title="Portfolio Preview" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals"></iframe>
       </div>
       <div class="deploy-hint">
         <strong>Deploy free →</strong>
@@ -1835,6 +1878,10 @@
       const modalName = document.getElementById("modalName");
       const downloadBtn = document.getElementById("downloadBtn");
       const closeModal = document.getElementById("closeModal");
+
+      // Keep in sync with MAX_RESUME_BYTES in src/app.js (which explains why
+      // it's 4MB: the hosting platform caps request bodies at 4.5MB).
+      const MAX_RESUME_UPLOAD_BYTES = 4 * 1024 * 1024;
 
       let selectedFile = null;
       let generatedHTML = "";
@@ -2090,7 +2137,7 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok) throw new Error(data.error || "Couldn't apply the design changes.");
           lastGenerateOptions = options;
           generatedHTML = data.html;
@@ -2138,6 +2185,17 @@
       });
 
       function selectFile(file) {
+        // Checked here, before any upload, so the user gets an instant and
+        // specific message rather than waiting for the server to refuse it.
+        if (file.size > MAX_RESUME_UPLOAD_BYTES) {
+          selectedFile = null;
+          fileInput.value = "";
+          fileSelected.classList.remove("visible");
+          errorBox.textContent = "✗ That file is over 4MB. Try a smaller export of your resume, or paste its text instead.";
+          errorBox.classList.add("visible");
+          updateGenerateBtnState();
+          return;
+        }
         selectedFile = file;
         fileName.textContent = file.name;
         fileSelected.classList.add("visible");
@@ -2243,7 +2301,7 @@
           setStep(3);
           await delay(300);
 
-          const data = await res.json();
+          const data = await readJSON(res);
 
           if (!res.ok) throw new Error(data.error || "Generation failed");
 
@@ -2264,7 +2322,10 @@
               tagline: data.portfolioData.tagline || "",
               email: data.portfolioData.email || "",
               skills: data.portfolioData.skills || [],
-              resumeText: data.resumeText || ""
+              resumeText: data.resumeText || "",
+              // Lets a later sign-in tell whether this copy or the synced
+              // one is newer (see mergeRemoteProfile).
+              savedAt: new Date().toISOString()
             }));
             renderProfile();
             checkResumeState();
@@ -2289,6 +2350,30 @@
 
       function delay(ms) {
         return new Promise((r) => setTimeout(r, ms));
+      }
+
+      // Reads a response as JSON without assuming it IS JSON. Our own API
+      // always answers in JSON, but the hosting platform can answer before
+      // the request ever reaches it — e.g. Vercel's "payload too large" or a
+      // function timeout — with an HTML or plain-text page. Parsing that
+      // directly as JSON throws "Unexpected token '<'...", which is what
+      // users used to see. Throws an Error with a readable message instead;
+      // every caller already shows err.message from its catch block.
+      async function readJSON(res) {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          // fall through to a message based on the status code
+        }
+        if (res.status === 413) throw new Error("That upload is too large for the server. Please use a file under 4MB.");
+        if (res.status === 429) throw new Error("Too many requests. Please wait a few minutes and try again.");
+        if ([502, 503, 504].includes(res.status)) throw new Error("The server took too long to respond. Please try again in a minute.");
+        throw new Error(
+          res.ok
+            ? "The server sent an unexpected response. Please try again."
+            : `The request failed (HTTP ${res.status}). Please try again.`
+        );
       }
 
       // ── Preview ──
@@ -2464,7 +2549,7 @@
             body: JSON.stringify(payload),
           });
 
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok) throw new Error(data.error || "Failed to update preview.");
 
           generatedHTML = data.html;
@@ -2541,7 +2626,7 @@
             })
           });
 
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok) throw new Error(data.error || "Failed to generate cover letter.");
 
           clStep2.classList.remove("active");
@@ -2640,7 +2725,7 @@
             body: JSON.stringify({ resumeText: resume.resumeText }),
           });
 
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok) throw new Error(data.error || "Failed to review resume.");
 
           rrStep2.classList.remove("active");
@@ -2837,6 +2922,59 @@
       const PROFILE_TOKEN_KEY = "github_profile_token";
       const PROFILE_USERNAME_KEY = "github_profile_username";
 
+      // ── Signing in automatically after a deploy ──
+      // Deploying and profile sync are two separate GitHub authorizations on
+      // purpose: the deploy token can write to public repos, so it is used
+      // once on the server and never kept, while the token stored in this
+      // browser for sync can only touch gists. The cost of that split used
+      // to be a confusing Profile page — you'd just "logged in with GitHub"
+      // to deploy, yet it still asked you to sign in. So a successful deploy
+      // now continues straight into the sync sign-in (see the redirect
+      // handling at the bottom of this script). GitHub asks for the extra
+      // gist permission once; after that the hop is invisible.
+      //
+      // SYNC_DECLINED remembers that the user said no (cancelled that
+      // permission, or signed out), so deploys don't keep sending them back.
+      // PENDING_DEPLOY carries the "your site is live" banner across the
+      // extra round trip, since the page reloads in between.
+      const SYNC_DECLINED_KEY = "github_sync_declined";
+      const PENDING_DEPLOY_KEY = "pending_deploy_url";
+
+      function syncDeclined() {
+        // If storage is unavailable we can't remember a "no", so don't
+        // start a redirect we might then repeat on every deploy.
+        try {
+          return localStorage.getItem(SYNC_DECLINED_KEY) === "1";
+        } catch {
+          return true;
+        }
+      }
+      function setSyncDeclined() {
+        try { localStorage.setItem(SYNC_DECLINED_KEY, "1"); } catch {}
+      }
+      function clearSyncDeclined() {
+        try { localStorage.removeItem(SYNC_DECLINED_KEY); } catch {}
+      }
+      function rememberPendingDeploy(url) {
+        try {
+          sessionStorage.setItem(PENDING_DEPLOY_KEY, url);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      // Returns the remembered URL (or null) and forgets it, so the banner
+      // can only ever be replayed once.
+      function takePendingDeploy() {
+        try {
+          const url = sessionStorage.getItem(PENDING_DEPLOY_KEY);
+          sessionStorage.removeItem(PENDING_DEPLOY_KEY);
+          return isSafeHttpsUrl(url) ? url : null;
+        } catch {
+          return null;
+        }
+      }
+
       function getProfileToken() {
         try {
           return localStorage.getItem(PROFILE_TOKEN_KEY);
@@ -2855,34 +2993,74 @@
         if (token && username) document.getElementById("syncUsername").textContent = username;
       }
 
+      // Reads a JSON array from localStorage; anything missing/corrupt is [].
+      function readLocalList(key) {
+        try {
+          const value = JSON.parse(localStorage.getItem(key));
+          return Array.isArray(value) ? value : [];
+        } catch {
+          return [];
+        }
+      }
+
+      // Combines what this browser has with what's in the synced profile.
+      // It used to simply replace local data with the remote copy, which was
+      // fine when sign-in only ever happened on an empty browser — but now
+      // sign-in also happens right after a deploy, and replacing would throw
+      // away the portfolio that was just published (it isn't in the remote
+      // copy yet). So lists are merged, never overwritten; the caller pushes
+      // the merged result back so the synced copy catches up.
       function mergeRemoteProfile(profile) {
         if (!profile) return;
+
         if (profile.resume) {
-          // The gist never stores the full resume text (kept small & low-PII by
-          // design) — preserve it locally if this browser already has it.
-          let localResumeText = "";
+          let local = null;
           try {
-            const local = JSON.parse(localStorage.getItem("latest_resume"));
-            localResumeText = (local && local.resumeText) || "";
+            local = JSON.parse(localStorage.getItem("latest_resume"));
           } catch {}
-          localStorage.setItem("latest_resume", JSON.stringify({
-            name: profile.resume.name || "",
-            tagline: profile.resume.tagline || "",
-            email: profile.resume.email || "",
-            skills: profile.resume.skills || [],
-            resumeText: localResumeText,
-          }));
+          // Keep this browser's resume only if it's provably newer than the
+          // synced one; without a timestamp to compare, the synced copy wins
+          // (the previous behaviour).
+          const localIsNewer = Boolean(
+            local && local.name && local.savedAt && profile.updatedAt && local.savedAt > profile.updatedAt
+          );
+          if (!localIsNewer) {
+            localStorage.setItem("latest_resume", JSON.stringify({
+              name: profile.resume.name || "",
+              tagline: profile.resume.tagline || "",
+              email: profile.resume.email || "",
+              skills: profile.resume.skills || [],
+              // The gist never stores the full resume text (kept small &
+              // low-PII by design) — preserve it if this browser has it.
+              resumeText: (local && local.resumeText) || "",
+            }));
+          }
         }
+
         if (Array.isArray(profile.portfolios)) {
-          localStorage.setItem("portfolio_deploys", JSON.stringify(profile.portfolios.map((p) => ({
-            liveUrl: p.liveUrl,
-            name: p.name || "",
-            repoName: p.repoName || "",
-            deployedAt: p.deployedAt || null,
-          }))));
+          // One row per live URL, keeping whichever copy was deployed last.
+          const byUrl = new Map();
+          for (const p of [...profile.portfolios, ...readLocalList("portfolio_deploys")]) {
+            if (!p || !isSafeHttpsUrl(p.liveUrl)) continue;
+            const entry = { liveUrl: p.liveUrl, name: p.name || "", repoName: p.repoName || "", deployedAt: p.deployedAt || null };
+            const existing = byUrl.get(entry.liveUrl);
+            if (!existing || (entry.deployedAt || "") > (existing.deployedAt || "")) byUrl.set(entry.liveUrl, entry);
+          }
+          const merged = [...byUrl.values()].sort((a, b) => (b.deployedAt || "").localeCompare(a.deployedAt || ""));
+          localStorage.setItem("portfolio_deploys", JSON.stringify(merged.slice(0, 20)));
         }
+
         if (Array.isArray(profile.coverLetters)) {
-          localStorage.setItem("cover_letters", JSON.stringify(profile.coverLetters));
+          // Local letters first (they're the most recent activity here),
+          // then any synced ones this browser doesn't have yet.
+          const seen = new Set();
+          const merged = [];
+          for (const letter of [...readLocalList("cover_letters"), ...profile.coverLetters]) {
+            if (!letter || !letter.id || seen.has(letter.id)) continue;
+            seen.add(letter.id);
+            merged.push(letter);
+          }
+          localStorage.setItem("cover_letters", JSON.stringify(merged.slice(0, 30)));
         }
       }
 
@@ -2902,11 +3080,19 @@
         };
 
         try {
-          await fetch("/profile/sync", {
+          const res = await fetch("/profile/sync", {
             method: "PUT",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify(payload),
           });
+          // 401 = GitHub no longer accepts this token (revoked or expired).
+          // Forget it so the UI stops claiming to be signed in and syncing
+          // when every sync is in fact being rejected.
+          if (res.status === 401) {
+            localStorage.removeItem(PROFILE_TOKEN_KEY);
+            localStorage.removeItem(PROFILE_USERNAME_KEY);
+            updateSyncUI();
+          }
         } catch (e) {
           // Best-effort background sync — a failure here shouldn't interrupt the user.
         }
@@ -2922,19 +3108,29 @@
       async function completeProfileSignIn(handoffCode) {
         try {
           const res = await fetch(`/auth/profile/session-token?code=${encodeURIComponent(handoffCode)}`);
-          const data = await res.json();
+          const data = await readJSON(res);
           if (!res.ok || !data.accessToken) throw new Error(data.error || "Sign-in failed.");
 
-          localStorage.setItem(PROFILE_TOKEN_KEY, data.accessToken);
-
+          // Read and merge the synced profile BEFORE storing the token.
+          // Storing it is what switches background syncing on, and a sync
+          // that fired before the merge would upload this browser's data
+          // alone, overwriting whatever was synced from another device.
           const syncRes = await fetch("/profile/sync", { headers: { "Authorization": `Bearer ${data.accessToken}` } });
-          const syncData = await syncRes.json();
+          // A failed first sync shouldn't undo a sign-in that already succeeded.
+          const syncData = await readJSON(syncRes).catch(() => ({}));
           if (syncRes.ok) {
             if (syncData.username) localStorage.setItem(PROFILE_USERNAME_KEY, syncData.username);
             mergeRemoteProfile(syncData.profile);
           }
+
+          localStorage.setItem(PROFILE_TOKEN_KEY, data.accessToken);
+          clearSyncDeclined();
           updateSyncUI();
+          // renderProfile() also schedules a sync, which uploads the merged
+          // result — so the synced copy gains anything this browser had
+          // first (e.g. the portfolio deployed moments ago).
           renderProfile();
+          checkResumeState();
         } catch (err) {
           alert("Sign-in failed: " + err.message);
         }
@@ -2953,6 +3149,9 @@
         }
         localStorage.removeItem(PROFILE_TOKEN_KEY);
         localStorage.removeItem(PROFILE_USERNAME_KEY);
+        // An explicit sign-out means "don't sync from this browser", so the
+        // next deploy shouldn't quietly sign them back in.
+        setSyncDeclined();
         updateSyncUI();
       });
 
@@ -2997,25 +3196,55 @@
       }
 
       // ── Handle redirect back from GitHub OAuth ──
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('deployed') === 'true' && isSafeHttpsUrl(params.get('url'))) {
-        const url = params.get('url');
-        addDeployedPortfolio({ liveUrl: url, name: params.get('name'), repoName: params.get('repo') });
-        renderProfile();
-
+      function showDeployBanner(url) {
         const banner = document.getElementById('successBanner');
         const link = document.getElementById('liveLink');
         link.href = url;
         link.textContent = url;
         banner.classList.add('visible');
         setTimeout(() => banner.classList.remove('visible'), 10000);
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      // Set when a sync sign-in that followed a deploy has just returned
+      // (successfully or not): the deploy itself already succeeded.
+      const pendingDeployUrl = takePendingDeploy();
+
+      if (params.get('deployed') === 'true' && isSafeHttpsUrl(params.get('url'))) {
+        const url = params.get('url');
+        // Saved locally first, so it's already in "My Portfolios" whatever
+        // happens next; the sign-in below then merges it into the synced copy.
+        addDeployedPortfolio({ liveUrl: url, name: params.get('name'), repoName: params.get('repo') });
+        renderProfile();
         window.history.replaceState({}, '', '/');
+
+        // Continue into the sync sign-in unless this browser is already
+        // signed in or has said no. replace() rather than assign(), so the
+        // Back button doesn't land on this in-between page.
+        if (!getProfileToken() && !syncDeclined() && rememberPendingDeploy(url)) {
+          window.location.replace('/auth/profile/github');
+          return;
+        }
+        showDeployBanner(url);
+      }
+
+      if (pendingDeployUrl) {
+        // Back from the sign-in hop that followed a deploy. However that hop
+        // ended, the site is live — show the banner it postponed.
+        showDeployBanner(pendingDeployUrl);
+        // No sign-in token came back: the user cancelled, backed out, or it
+        // failed. Sync is optional, so take that as a "no" and stop offering
+        // it uninvited; the Sign in button on the Profile page still works.
+        if (!params.get('profileSignin')) setSyncDeclined();
       }
 
       if (params.get('error')) {
         const msg = params.get('error');
-        alert('Deploy failed: ' + msg);
         window.history.replaceState({}, '', '/');
+        // Both the deploy and the sign-in flow report failures through this
+        // parameter, so the wording can't assume which one it was. Stay quiet
+        // if it was only the optional post-deploy sign-in that didn't happen.
+        if (!pendingDeployUrl) alert('GitHub step failed: ' + msg);
       }
 
       // ── Overwrite confirmation: existing (non-Portfol.io) content found on the target repo ──
